@@ -1,8 +1,9 @@
-//扫码传文件 - v2.8 (导航优化版)
+//扫码传文件 - v2.8 (导航优化版 + 配置文件支持)
 import fsys;
 import fsys.info;
 import fsys.config;
 import fsys.dlg.dir;
+import fsys.ini;              // 【新增】读取外部 ini 配置文件
 import fsys.update.simpleMain;
 import process;
 import web.socket.server;
@@ -78,7 +79,6 @@ if( #config.winform.documentRoot && io.exist(config.winform.documentRoot) ){
 	winform.editDocumentRoot.text = config.winform.documentRoot;
 }
 else {
-    // winform.editDocumentRoot.text = io.getSpecial(0x5/*_CSIDL_MYDOCUMENTS*/)
     winform.editDocumentRoot.text = io.getSpecial(0x10/*_CSIDL_DESKTOPDIRECTORY*/)
 }
 
@@ -96,11 +96,41 @@ else {
 } 
 winform.editHost.text = config.winform.editHost;
 
+// ============================================================
+// 【新增】读取外部配置文件 config.ini（与 EXE 同目录）
+// ============================================================
+var cfgPort = null;
+var cfgPassword = null;
+
+var iniPath = io.fullpath("\config.ini");
+if(io.exist(iniPath)){
+    var ini = fsys.ini(iniPath);
+    cfgPort = ini.read("Server","Port");
+    cfgPassword = ini.read("Server","Password");
+    
+    // 调试信息（会被 serverInfo 覆盖，不影响功能）
+    winform.txtMessage.print("已加载配置文件：" + iniPath);
+    if(cfgPort) winform.txtMessage.print("端口：" + cfgPort);
+    if(cfgPassword != null) winform.txtMessage.print("密码：" + (#cfgPassword ? cfgPassword : "（空）"));
+}
+// ============================================================
+
 var wsrv = web.socket.server();
 var srvHttp = wsrv.httpServer;
 srvHttp.documentRoot = winform.editDocumentRoot.text;
-srvHttp.userToken = string.random(18);
+
+// 【修改】优先使用配置文件中的密码，否则生成随机密码
+if(cfgPassword != null){
+    srvHttp.userToken = cfgPassword;
+} else {
+    srvHttp.userToken = string.random(18);
+}
 winform.editPassword.text = srvHttp.userToken;
+
+// 【新增】如果配置文件指定了端口，写入输入框
+if(cfgPort){
+    winform.editPort.text = cfgPort;
+}
 
 var cacheSysIcons = {}
 var getSysIconIndex = function(path){ 
@@ -477,7 +507,7 @@ function deleteFile(path, btn) {
 
 srvHttp.run( 
 	function(response,request,session){ 
-	 
+ 
 		response.headers["Cache-Control"] = "no-cache, no-store, must-revalidate";
 		response.headers["Pragma"] = "no-cache";
 		response.headers["Expires"] = "0";
@@ -932,6 +962,7 @@ winform.btnStart.oncommand = function(id,event){
 	
 	config.saveAll();
 	
+	// 重启服务时，用输入框当前的端口值（支持手动修改）
 	var port = tonumber(winform.editPort.text);
 	
 	srvHttp.documentRoot = fsys.isDir(winform.editDocumentRoot.text) ? winform.editDocumentRoot.text;
@@ -1195,6 +1226,18 @@ winform.bkplus.onDrawBackground = function(graphics,rc){
 
 winform.syslink.oncommand = function(id,event){
 	
+}
+
+// 【新增】程序启动时，如果配置文件指定了端口，立即用该端口启动服务
+if(cfgPort){
+    // 先关闭之前默认启动的随机端口服务
+    try{ srvHttp.close(); }
+    catch(e){}
+    
+    srvHttp.documentRoot = fsys.isDir(winform.editDocumentRoot.text) ? winform.editDocumentRoot.text : srvHttp.documentRoot;
+    srvHttp.userToken = winform.editPassword.text;
+    srvHttp.start("0.0.0.0", tonumber(cfgPort));
+    winform.editPort.text = tonumber(cfgPort);
 }
 
 serverInfo();
