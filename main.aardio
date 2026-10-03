@@ -23,9 +23,9 @@ bk={cls="bk";left=0;top=-5;right=799;bottom=29;bgcolor=0xF0F0F0;dl=1;dr=1;dt=1;f
 bkplus={cls="bkplus";text="qrfs扫码快传 - 共享文件、电脑剪贴板、手机输入法 - v2.8";left=35;top=3;right=509;bottom=25;align="left";color=0x5A5A5A;dl=1;dt=1;z=11};
 btnOpen={cls="plus";text='\uF115';left=430;top=44;right=456;bottom=68;align="right";border={bottom=1;color=0x808080};dr=1;dt=1;font=LOGFONT(h=-16;name='FontAwesome');notify=1;z=1};
 btnOpenUpload={cls="plus";text="上传目录";left=473;top=40;right=614;bottom=69;align="left";dl=1;dt=1;font=LOGFONT(h=-14);iconStyle={align="left";font=LOGFONT(h=-15;name='FontAwesome');padding={left=8;top=2}};iconText='\uF07C';notify=1;textPadding={left=27;bottom=1};z=12};
-btnSetting={cls="plus";left=737;top=455;right=768;bottom=484;bgcolor=0xFAFAFA;db=1;dl=1;font=LOGFONT(h=-16;name='FontAwesome');hide=1;iconStyle={align="left";font=LOGFONT(h=-16;name='FontAwesome');padding={left=7;top=3}};iconText='\uF013';notify=1;z=23};
+btnSetting={cls="plus";left=1737;top=455;right=1738;bottom=484;bgcolor=0xFAFAFA;db=1;dl=1;font=LOGFONT(h=-16;name='FontAwesome');hide=1;iconStyle={align="left";font=LOGFONT(h=-16;name='FontAwesome');padding={left=7;top=3}};iconText='\uF013';notify=1;z=23};
 btnStart={cls="plus";text="重启服务";left=635;top=69;right=768;bottom=106;align="left";bgcolor=0xD9A100;border={radius=8};color=0xFFFFFF;dr=1;dt=1;font=LOGFONT(h=-15);iconStyle={align="left";font=LOGFONT(h=-19;name='FontAwesome');padding={left=16}};iconText='\uF233';notify=1;textPadding={left=45;bottom=2};z=6};
-chkAiOpt={cls="checkbox";text="AI 优化";left=642;top=461;right=712;bottom=483;bgcolor=0xFAFAFA;hide=1;z=22};
+chkAiOpt={cls="checkbox";text="AI 优化";left=1642;top=461;right=1656;bottom=483;bgcolor=0xFAFAFA;hide=1;z=22};
 chkPublicAddress={cls="checkbox";text="公网 IP";left=486;top=109;right=556;bottom=131;bgcolor=0xFFFFFF;z=24};
 editDocumentRoot={cls="plus";left=131;top=46;right=430;bottom=68;align="left";border={bottom=1;color=0xC0C0C0};clip=1;dl=1;dr=1;dt=1;editable="edit";textPadding={bottom=1};z=8};
 editHost={cls="plus";left=131;top=75;right=456;bottom=97;align="left";border={bottom=1;color=0xC0C0C0};dr=1;dt=1;editable="edit";textPadding={bottom=1};z=19};
@@ -35,13 +35,13 @@ plus={cls="plus";text="密码：";left=71;top=108;right=129;bottom=132;align="ri
 plus2={cls="plus";left=38;top=148;right=455;bottom=442;align="left";border={color=0xC0C0C0;radius=8;width=1};db=1;dl=1;dr=1;dt=1;font=LOGFONT(h=-14);textPadding={left=16};valign="top";z=2};
 plus3={cls="plus";text="自定义网址：";left=9;top=77;right=129;bottom=101;align="right";dr=1;dt=1;font=LOGFONT(h=-14);transparent=1;z=20};
 qr={cls="plus";left=483;top=148;right=768;bottom=433;border={radius=8};db=1;dr=1;dt=1;foreRepeat="scale";repeat="scale";z=7};
-radioQrClipboard={cls="radiobutton";text="共享剪贴板";left=442;top=461;right=529;bottom=483;bgcolor=0xFAFAFA;db=1;dr=1;hide=1;z=18};
-radioQrInputMethod={cls="radiobutton";text="共享输入法";left=541;top=461;right=637;bottom=483;bgcolor=0xFAFAFA;db=1;dr=1;hide=1;z=21};
-radioQrRootDir={cls="radiobutton";text="根目录";left=259;top=461;right=346;bottom=483;bgcolor=0xFAFAFA;db=1;dr=1;hide=1;z=16};
-radioQrUploadDir={cls="radiobutton";text="上传文件";left=350;top=461;right=437;bottom=483;bgcolor=0xFAFAFA;db=1;dr=1;hide=1;z=17};
+radioQrClipboard={cls="radiobutton";text="共享剪贴板";left=542;top=461;right=629;bottom=483;bgcolor=0xFAFAFA;db=1;dr=1;z=18};
+radioQrInputMethod={cls="radiobutton";text="共享输入法";left=641;top=461;right=737;bottom=483;bgcolor=0xFAFAFA;db=1;dr=1;z=21};
+radioQrRootDir={cls="radiobutton";text="根目录";left=359;top=461;right=446;bottom=483;bgcolor=0xFAFAFA;db=1;dr=1;z=16};
+radioQrUploadDir={cls="radiobutton";text="上传文件";left=450;top=461;right=537;bottom=483;bgcolor=0xFAFAFA;db=1;dr=1;z=17};
 static={cls="plus";text="端口：";left=467;top=77;right=530;bottom=101;align="right";dr=1;dt=1;font=LOGFONT(h=-14);transparent=1;z=4};
 static2={cls="plus";text="网站根目录：";left=15;top=45;right=129;bottom=69;align="right";dl=1;dt=1;font=LOGFONT(h=-14);transparent=1;z=5};
-syslink={cls="syslink";text='<a href="https://github.com/aardio/qrfs">开源项目</a>';left=635;top=463;right=771;bottom=483;align="right";bgcolor=0xFAFAFA;db=1;dl=1;notify=1;z=15};
+syslink={cls="syslink";text='<a href="https://github.com/aardio/qrfs">开源项目</a>';left=43;top=463;right=176;bottom=483;bgcolor=0xFAFAFA;db=1;dl=1;z=15};
 txtMessage={cls="richedit";left=43;top=151;right=451;bottom=436;autohscroll=false;bgcolor=0xFAFAFA;db=1;dl=1;dr=1;dt=1;link=1;multiline=1;vscroll=1;z=3}
 )
 /*}}*/
@@ -903,7 +903,7 @@ var serverInfo = function(){
 	
 	winform.txtMessage.text = 'HTTP 服务端已启动: \n'; 
 	winform.txtMessage.print( url ); 
-	
+
 	var qrBmp = qrencode.bitmap( url );
     winform.qr.setForeground(qrBmp.copyBitmap(winform.qr.width)); 
 		
@@ -1086,9 +1086,18 @@ var updateHomeDir = function(){
 	if(#srvHttp.userToken){
 		url = url ++ "?t=" + srvHttp.userToken;
 	}  
-	
+	// 【新增】同步更新左侧文本框中的 URL
+	winform.txtMessage.text = 'HTTP 服务端已启动: \n'; 
+	winform.txtMessage.print( url ); 
+	winform.txtMessage.print( 
+		"
+手机无线连接电脑局域网。
+扫码打开网页即可互传文件，共享电脑剪贴板、手机输入法。
+拖动文件或目录到窗口网页自动刷新。"
+	); 
+		
 	var qrBmp = qrencode.bitmap( url );
-    winform.qr.setBackground(qrBmp.copyBitmap(winform.qr.width)); 	
+    winform.qr.setForeground(qrBmp.copyBitmap(winform.qr.width)); 	
 }
 
 winform.radioQrRootDir.oncommand = function(id,event){
