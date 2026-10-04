@@ -1,4 +1,4 @@
-//扫码传文件 - v2.8 (导航优化版 + 配置文件支持 + 剪贴板多端同步修复 + 允许空密码)
+//扫码传文件 - v2.8 (导航优化版 + 配置文件支持)
 import fsys;
 import fsys.info;
 import fsys.config;
@@ -98,8 +98,6 @@ winform.editHost.text = config.winform.editHost;
 
 // ============================================================
 // 【新增】读取外部配置文件 config.ini（与 EXE 同目录）
-// ★ 关键：fsys.ini.read 无法区分"未写 Password"和"Password= 空值"，
-//   所以用读原文的方式判断用户是否显式写了 Password=
 // ============================================================
 var cfgPort = null;
 var cfgPassword = null;
@@ -108,21 +106,12 @@ var iniPath = io.fullpath("\config.ini");
 if(io.exist(iniPath)){
     var ini = fsys.ini(iniPath);
     cfgPort = ini.read("Server","Port");
+    cfgPassword = ini.read("Server","Password");
     
-    // 逐行解析原文，判断是否存在 Password= 这一行
-    var iniRaw = string.load(iniPath) : "";
-    for(line in string.lines(iniRaw)) {
-        var t = string.trim(line);
-        var eq = string.find(t, "=");
-        if(eq && string.trim(string.left(t, eq - 1)) == "Password") {
-            cfgPassword = string.trim(string.sub(t, eq + 1));
-            break;
-        }
-    }
-    
+    // 调试信息（会被 serverInfo 覆盖，不影响功能）
     winform.txtMessage.print("已加载配置文件：" + iniPath);
     if(cfgPort) winform.txtMessage.print("端口：" + cfgPort);
-    if(cfgPassword !== null) winform.txtMessage.print("密码：" + (#cfgPassword ? cfgPassword : "（空）"));
+    if(cfgPassword != null) winform.txtMessage.print("密码：" + (#cfgPassword ? cfgPassword : "（空）"));
 }
 // ============================================================
 
@@ -130,11 +119,8 @@ var wsrv = web.socket.server();
 var srvHttp = wsrv.httpServer;
 srvHttp.documentRoot = winform.editDocumentRoot.text;
 
-// ★ 【修改】密码逻辑：
-//   - 配置文件里没写 Password 项     → 自动生成随机密码
-//   - 配置文件里写了 Password 但为空 → 空密码（服务端不验证，谁都能连）
-//   - 配置文件里写了 Password 有内容 → 用该密码
-if(cfgPassword !== null){
+// 【修改】优先使用配置文件中的密码，否则生成随机密码
+if(cfgPassword != null){
     srvHttp.userToken = cfgPassword;
 } else {
     srvHttp.userToken = string.random(18);
@@ -461,10 +447,6 @@ ul.file-list li span.fsize { font-size: 0.8rem; color: var(--text-secondary); wh
 <script>
 let websocket;
 let wsReconnectAttempts = 0;
-// ★修复 1：记录本机剪贴板最后编辑时间、最后发送的值、以及最近发送过的所有值（用于忽略自己的回声）
-window.clipboardLastEditTime = 0;
-window.clipboardLastSentValue = null;
-window.clipboardSentHistory = new Map();   // value -> timestamp
 const wsUrl = "`+wsrv.getUrl("ws",true)+`";
 
 function connectWebSocket() {
@@ -473,28 +455,14 @@ function connectWebSocket() {
 	websocket.onmessage = function(evt) {
 		if (evt.data === "reload") {
 			`+(activeTab=="files"?"window.location.reload();":"")+`
-			return;
-		}
-		// ★修复 2：收到远端内容时不再无条件全选，避免覆盖正在输入的文字
-		const el = document.getElementById('clipboardContent');
-		if (!el) return;
-		if (evt.data === el.value) return;
-
-		// 忽略自己最近发出、又被服务端广播回来的内容（含乱序到达）
-		if (window.clipboardSentHistory.has(evt.data)) {
-			return;
-		}
-
-		// 用户正在连续打字（1 秒内输入过）→ 不打扰他
-		if (document.activeElement === el
-			&& Date.now() - window.clipboardLastEditTime < 1000) {
-			return;
-		}
-
-		// 静默替换内容，光标落到末尾
-		el.value = evt.data;
-		if (document.activeElement === el) {
-			el.selectionStart = el.selectionEnd = el.value.length;
+		} else {
+			const clipboardContent = document.getElementById('clipboardContent');
+			if (clipboardContent /*&& document.activeElement !== clipboardContent*/) {
+				if(evt.data!=clipboardContent.value ){
+					clipboardContent.value = evt.data;
+					clipboardContent.select();
+				} 
+			}
 		}
 	};
 	websocket.onclose = function() {
@@ -710,25 +678,13 @@ else{
 document.getElementById('pasteTip').textContent = pasteTip;
 
 const clipboardContent = document.getElementById('clipboardContent');
-
-// ★修复 3：输入时记录时间戳，并把值写入"发送历史"，供 onmessage 判断回声
 clipboardContent.addEventListener('input', (e) => {
-	const val = e.target.value;
-	window.clipboardLastEditTime = Date.now();
-	window.clipboardLastSentValue = val;
-	window.clipboardSentHistory.set(val, Date.now());
-
-	// 清理 5 秒之前的发送记录
-	const now = Date.now();
-	for (const [k, t] of window.clipboardSentHistory) {
-		if (now - t > 5000) window.clipboardSentHistory.delete(k);
-	}
-
 	if (websocket && websocket.readyState === WebSocket.OPEN) {
-		websocket.send(JSON.stringify({
+		var data = JSON.stringify({
 			event:"clipboard",
-			content:val
-		}));
+			content:e.target.value
+		});
+		websocket.send(data);
 	}
 });
 
@@ -743,8 +699,7 @@ copyBtn.addEventListener('click', async function() {
 	}
 });
 
-// ★修复 4：不要无条件全选，光标落到末尾即可
-clipboardContent.setSelectionRange(clipboardContent.value.length, clipboardContent.value.length);
+clipboardContent.select();
 </script>
 </body></html>`);
 			return;
@@ -1058,12 +1013,13 @@ winform.btnOpenUpload.oncommand = function(id,event){
 	}
 }
 
-// ★修复 5：恢复原样——剪贴板一变就广播，让所有客户端都能收到。
-//（客户端自己判断是否为自己的回声，来决定要不要覆盖 textarea）
 var clipViewer = win.clip.viewer(winform);
 clipViewer.onDrawClipboard=function(){
 	var str = win.clip.read();	
-	if(#str) wsrv.publish(str) 
+	//if(str!=wsrv.lastReceivedClipboardData ){
+		if(#str) wsrv.publish(str) 
+		//wsrv.lastReceivedClipboardData = null;   
+	//}
 }
 
 import key;
