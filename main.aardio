@@ -1,4 +1,4 @@
-//扫码传文件 - v2.8 (导航优化版 + 配置文件支持 + 剪贴板多端同步修复 + 允许空密码)
+//扫码传文件 - v2.8 (导航优化版 + 配置文件支持 + 剪贴板多端同步修复 + 允许空密码 + 输入法顶部发送按钮)
 import fsys;
 import fsys.info;
 import fsys.config;
@@ -753,7 +753,15 @@ clipboardContent.setSelectionRange(clipboardContent.value.length, clipboardConte
 		// 输入法页面
 		if(pageType=="input"){
 			response.write(`
-<h3 class="page-title">⌨️ 共享输入法</h3>
+<div style="display:flex;align-items:center;justify-content:space-between;
+            position:sticky;
+            top:calc(var(--nav-height) + max(0px, env(safe-area-inset-top)));
+            z-index:50;
+            background:var(--bg-color);
+            padding:15px;">
+	<h3 style="margin:0;padding:0;font-size:1.1rem;color:var(--text-secondary);font-weight:600;">⌨️ 共享输入法</h3>
+	<button id="sendBtnTop" class="btn-main btn-send" style="flex:0 0 auto;min-width:auto;padding:8px 18px;font-size:0.9rem;border-radius:8px;">📨 发送</button>
+</div>
 
 <div class="func-container">
 	<textarea id="inputContent" class="func-content" placeholder="在此输入文字，点击发送后将输入到电脑当前焦点位置..."></textarea>
@@ -768,11 +776,14 @@ clipboardContent.setSelectionRange(clipboardContent.value.length, clipboardConte
 const isMobile = /Android|iPhone|iPad|iPod/i.test(navigator.userAgent);
 if (!isMobile) {
 	document.getElementById('sendBtn').textContent = '📨 发送到服务端';
+	document.getElementById('sendBtnTop').textContent = '📨 发送';
 }
 
 const inputContent = document.getElementById('inputContent');
- 
-document.getElementById('sendBtn').addEventListener('click', async function() {
+const sendBtn = document.getElementById('sendBtn');
+const sendBtnTop = document.getElementById('sendBtnTop');
+
+async function doSendInput() {
 	if(!inputContent.value.trim()) {
 		showToast('请先输入内容');
 		return;
@@ -789,7 +800,10 @@ document.getElementById('sendBtn').addEventListener('click', async function() {
 	} catch (e) { 
 		showToast('发送失败: ' + e.message);
 	}
-});
+}
+
+sendBtn.addEventListener('click', doSendInput);
+sendBtnTop.addEventListener('click', doSendInput);
 
 document.getElementById('clearBtn').addEventListener('click', function() {
 	inputContent.value = "";
