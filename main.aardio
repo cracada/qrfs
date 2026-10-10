@@ -17,15 +17,15 @@ import win.ui;
 import win.clip;
 import win.clip.viewer;
 /*DSG{{*/
-var winform = win.form(text="qrfs - 扫码快传 v2.8";right=798;bottom=491;bgcolor=0xFAFAFA;border="none";max=false)
+var winform = win.form(text="qrfs - 扫码快传 v2.8+";right=798;bottom=491;bgcolor=0xFAFAFA;border="none";max=false)
 winform.add(
 bk={cls="bk";left=0;top=-5;right=799;bottom=29;bgcolor=0xF0F0F0;dl=1;dr=1;dt=1;forecolor=0xEAEAEA;linearGradient=0;z=10};
-bkplus={cls="bkplus";text="qrfs扫码快传 - 共享文件、电脑剪贴板、手机输入法 - v2.8";left=35;top=3;right=509;bottom=25;align="left";color=0x5A5A5A;dl=1;dt=1;z=11};
+bkplus={cls="bkplus";text="qrfs扫码快传 - 共享文件、电脑剪贴板、手机输入法 - v2.8+";left=35;top=3;right=509;bottom=25;align="left";color=0x5A5A5A;dl=1;dt=1;z=11};
+btnConfig={cls="plus";text='\u2699 配置文件';left=635;top=110;right=768;bottom=132;bgcolor=0xFAFAFA;color=0x9A9A9A;dl=1;dr=1;dt=1;notify=1;transparent=1;z=25};
 btnOpen={cls="plus";text='\uF115';left=430;top=44;right=456;bottom=68;align="right";border={bottom=1;color=0x808080};dr=1;dt=1;font=LOGFONT(h=-16;name='FontAwesome');notify=1;z=1};
 btnOpenUpload={cls="plus";text="上传目录";left=473;top=40;right=614;bottom=69;align="left";dl=1;dt=1;font=LOGFONT(h=-14);iconStyle={align="left";font=LOGFONT(h=-15;name='FontAwesome');padding={left=8;top=2}};iconText='\uF07C';notify=1;textPadding={left=27;bottom=1};z=12};
 btnSetting={cls="plus";left=1737;top=455;right=1738;bottom=484;bgcolor=0xFAFAFA;db=1;dl=1;font=LOGFONT(h=-16;name='FontAwesome');hide=1;iconStyle={align="left";font=LOGFONT(h=-16;name='FontAwesome');padding={left=7;top=3}};iconText='\uF013';notify=1;z=23};
 btnStart={cls="plus";text="重启服务";left=635;top=69;right=768;bottom=106;align="left";bgcolor=0xD9A100;border={radius=8};color=0xFFFFFF;dr=1;dt=1;font=LOGFONT(h=-15);iconStyle={align="left";font=LOGFONT(h=-19;name='FontAwesome');padding={left=16}};iconText='\uF233';notify=1;textPadding={left=45;bottom=2};z=6};
-btnConfig={cls="plus";text="⚙ 配置文件";left=635;top=110;right=768;bottom=132;align="center";bgcolor=0xFAFAFA;color=0x9A9A9A;dl=1;dr=1;dt=1;font=LOGFONT(h=-12);notify=1;transparent=1;z=25};
 chkAiOpt={cls="checkbox";text="AI 优化";left=1642;top=461;right=1656;bottom=483;bgcolor=0xFAFAFA;hide=1;z=22};
 chkPublicAddress={cls="checkbox";text="公网 IP";left=486;top=109;right=556;bottom=131;bgcolor=0xFFFFFF;z=24};
 editDocumentRoot={cls="plus";left=131;top=46;right=430;bottom=68;align="left";border={bottom=1;color=0xC0C0C0};clip=1;dl=1;dr=1;dt=1;editable="edit";textPadding={bottom=1};z=8};
