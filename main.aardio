@@ -657,8 +657,16 @@ srvHttp.run(
 		// 文件浏览处理
 		if(pageType=="files"){
 			if(!fsys.isDir(request.path)) {
-				if( ..io.exist(request.path) && (!_STUDIO_INVOKED || request.path!="/main.aardio") )
+				// ★【修复】web 根目录里的 .aardio 文件不再 loadcode 编译执行。
+				// 原因：response.loadcode 会把文件当 aardio 源码现场编译，
+				//      若该文件里含 $"\\include\\xxx" 之类的编译期包含语句，
+				//      编译失败 → 整个页面弹报错（例如 web 根目录里的 main.aardio）。
+				var lpath = string.lower(request.path);
+				var isAardioFile = (#lpath >= 7) and (string.right(lpath, 7) == ".aardio");
+
+				if( ..io.exist(request.path) && !isAardioFile ) {
 					return response.loadcode(request.path)
+				}
 				else {
 					request.path = fsys.getParentDir(request.path)
 				}
