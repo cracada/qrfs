@@ -97,6 +97,7 @@ else {
 } 
 winform.editHost.text = config.winform.editHost;
 
+
 // ============================================================
 // 【新增】读取外部配置文件 config.ini（与 EXE 同目录）
 // ★ 关键：fsys.ini.read 无法区分"未写 Password"和"Password= 空值"，
@@ -186,22 +187,22 @@ var cacheSysIcons = {}
 var cacheClientIps = {}
 var currentQrUrl = "";   // ★【二维码可点】记住当前二维码指向的 URL
 
-var getSysIconIndex = function(path){ 
-	var sfi;
-	sfi = fsys.info.get(path, 0x100/*_SHGFI_ICON*/ | 0x4000/*_SHGFI_SYSICONINDEX*/|0x10/*_SHGFI_USEFILEATTRIBUTES*/, 
-		..fsys.isDir(path)?0x10/*_FILE_ATTRIBUTE_DIRECTORY*/?0x80/*_FILE_ATTRIBUTE_NORMAL*/);
-	 
-	if( !(sfi.returnValue ) ) return; 
-	
-	if(!cacheSysIcons[sfi.iIcon]){
-		var bmp = ..gdip.bitmap(sfi.hIcon,1/*_IMAGE_ICON*/);
-		if(bmp){
-			cacheSysIcons[sfi.iIcon] = bmp.saveToBuffer(".png"); 
-			bmp.dispose();
-		}
-	}
-	if(sfi.hIcon)::DestroyIcon(sfi.hIcon);	
-	return sfi.iIcon;
+var getSysIconIndex = function(path, isDir){
+    var sfi = fsys.info.get(
+        path,
+        0x100/*_SHGFI_ICON*/ | 0x4000/*_SHGFI_SYSICONINDEX*/ | 0x10/*_SHGFI_USEFILEATTRIBUTES*/,
+        isDir ? 0x10/*_FILE_ATTRIBUTE_DIRECTORY*/ : 0x80/*_FILE_ATTRIBUTE_NORMAL*/
+    );
+    if( !sfi.returnValue ) return;
+    if(!cacheSysIcons[sfi.iIcon]){
+        var bmp = ..gdip.bitmap(sfi.hIcon, 1/*_IMAGE_ICON*/);
+        if(bmp){
+            cacheSysIcons[sfi.iIcon] = bmp.saveToBuffer(".png");
+            bmp.dispose();
+        }
+    }
+    if(sfi.hIcon) ::DestroyIcon(sfi.hIcon);
+    return sfi.iIcon;
 }
 
 var formatSize = function(size){
@@ -636,6 +637,7 @@ srvHttp.run(
 				var ok,err = fileData.filepond.save(fileName); 
 				if(!ok){ response.error(err); }
 				
+				
 				winform.txtMessage.text = 'HTTP 服务端已启动: \n'; 
 				winform.txtMessage.print( srvHttp.getUrl(,true) + "/?t=" + srvHttp.userToken  );
 				winform.txtMessage.print( "" ); 	
@@ -880,7 +882,7 @@ inputContent.focus();
 		if(request.path!="/") {
 			var parentPath = fsys.getParentDir(request.path);
 			if(!#parentPath) parentPath = "/";
-			response.write(`<a class="link-card" href="`+parentPath+`?t=`+srvHttp.userToken+`" style="margin-top:0;">
+			response.write(`<a class="link-card" href="`+parentPath+`?t=`+srvHttp.userToken+`" style="margin-top:0;justify-content:flex-start;">
 				<span class="link-icon">⬆️</span>
 				<span>返回上一级</span>
 			</a>`);
@@ -903,7 +905,7 @@ inputContent.focus();
 		for(i=1;#dir;1){
 			if(dir[i]==="upload" && request.path=="/") continue;
 			hasContent = true;
-			var iconIdx = getSysIconIndex(dir[dir[i]]);
+			var iconIdx = getSysIconIndex(dir[i], true);
 			response.write('<li><a href="'
 				,inet.url.append(request.path, inet.url.encode(dir[i]))
 				,'?t='+srvHttp.userToken+'"><img src="/?icon='++(iconIdx)++'"><span class="fname">',string.html.escape(dir[i]),'</span></a></li>\r\n');
@@ -911,7 +913,7 @@ inputContent.focus();
 		
 		for(i=1;#file;1){
 			hasContent = true;
-			var iconIdx = getSysIconIndex(file[file[i]]);
+			var iconIdx = getSysIconIndex(file[i], false);
 			var encodedPath = inet.url.append(request.path, inet.url.encode(file[i]));
 			var filePath = string.replace(request.path + file[i], "//", "/");
 			var fileSize = io.getSize( io.joinpath(srvHttp.documentRoot, request.path, file[i]) );

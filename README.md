@@ -19,3 +19,20 @@
 8.解决跨屏输入时手机键盘遮挡顶部发送按钮的问题（顶部添加发送按钮）
 
 9.禁止.aardio脚本的服务端执行，避免根目录含有脚本时浏览出错
+
+10.修正目录图标显示错误
+
+11.修改"上一级目录"居左显示而非居中
+
+12.修复上传文件时会在web根目录创建config/temp/host目录的问题
+
+
+
+PS:
+config\temp\host这个临时目录是硬编码在文件中的，需要修改以下三个文件:
+\aardio\lib\wsock\tcp\asyncHttpServer.aardio  
+\aardio\lib\wsock\tcp\simpleHttpServer.aardio  
+\aardio\lib\fastcgi\client\_.aardio  
+
+//var tempDir = ..io.joinpath("/config/temp/",..string.match(request.host,"[^\:]+") );  
+var tempDir = ..io.joinpath( ..fsys.getParentDir(..io.tmpname()) ++ "\\config\\temp", ..string.match(request.host,"[^\:]+") );  
