@@ -1206,17 +1206,7 @@ winform.qr.onMouseClick = function(){
 	m.add(isTopmost ? "已置顶 ✔" : "窗口置顶", function(){
 		setTopmost(!isTopmost);
 	});
-	m.add("最小化", function(){
-    winform.show(false);
-    if(!winform.tray){
-        winform.tray = win.util.tray(winform);
-        winform.tray.tip = "qrfs - 扫码快传";
-        winform.onTrayMessage = {
-            [0x202/*_WM_LBUTTONUP*/] = function(){ winform.restoreFromTray(); };
-            [0x205/*_WM_RBUTTONUP*/] = function(){ winform.restoreFromTray(); };
-        }
-    }
-});
+	m.add("最小化", function(){ winform.show(false); });
 	m.popup();
 }
 
@@ -1338,30 +1328,38 @@ winform.txtMessage.readonly = true;
 import win.util.tray;
 import mouse;
 
-// 恢复窗口：显示 + 销毁托盘图标
-winform.restoreFromTray = function(){
-    if(winform.tray){
-        winform.tray.delete();
-        winform.tray = null;
-    }
-    winform.show(true);
-    win.setForeground(winform.hwnd, true);
+winform.tray = win.util.tray(winform);
+winform.tray.tip = "qrfs - 扫码快传";
+
+winform.onTrayMessage = {
+    [0x202/*_WM_LBUTTONUP*/] = function(){
+        if(winform.visible){
+            winform.show(false);
+        } else {
+            winform.show(true);
+            win.setForeground(winform.hwnd, true);
+        }
+    };
+    [0x205/*_WM_RBUTTONUP*/] = function(){
+        var m = win.ui.popmenu(winform);
+        m.add("显示/隐藏", function(){
+            if(winform.visible) winform.show(false);
+            else { winform.show(true); win.setForeground(winform.hwnd, true); }
+        });
+        m.add();
+        m.add("打开链接", function(){ if(#currentQrUrl) process.openUrl(currentQrUrl); });
+        m.add("复制链接", function(){ if(#currentQrUrl) win.clip.write(currentQrUrl); });
+        m.add();
+        m.add("配置文件", function(){ winform.btnConfig.oncommand(); });
+        m.add("重启服务", function(){ winform.btnStart.oncommand(); });        
+        m.add();
+        m.add("退出", function(){ winform.close(); });
+        m.popup();
+    };
 }
 
-// 拦截最小化：隐藏窗口 + 动态创建托盘图标
 winform.onMinimize = function(lParam){
     winform.show(false);
-
-    if(!winform.tray){
-        winform.tray = win.util.tray(winform);
-        winform.tray.tip = "qrfs - 扫码快传";
-
-        winform.onTrayMessage = {
-            [0x202/*_WM_LBUTTONUP*/] = function(){ winform.restoreFromTray(); };
-            [0x205/*_WM_RBUTTONUP*/] = function(){ winform.restoreFromTray(); };
-        }
-    }
-
     return true;
 }
 /*托盘图标结束*/
@@ -1411,6 +1409,7 @@ winform.btnSetting.oncommand = function(id,event){
 
 winform.chkAiOpt.checked = config.winform.checkAiOpt;
 winform.onDestroy = function(){
+    if(winform.tray) winform.tray.delete();
     config.winform.checkAiOpt = winform.chkAiOpt.checked;
 }
 
