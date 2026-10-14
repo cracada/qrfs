@@ -13,13 +13,15 @@ import win.ui.menu;
 import inet.url;
 import string.html;
 import fonts.fontAwesome;
+import win;
 import win.ui;
 import win.clip;
 import win.clip.viewer;
+/*F0F0F0*/
 /*DSG{{*/
 var winform = win.form(text="qrfs - 扫码快传 v2.8+";right=798;bottom=491;bgcolor=0xFAFAFA;border="none";max=false)
 winform.add(
-bk={cls="bk";left=0;top=-5;right=799;bottom=29;bgcolor=0xF0F0F0;dl=1;dr=1;dt=1;forecolor=0xEAEAEA;linearGradient=0;z=10};
+bk={cls="bk";left=0;top=-5;right=799;bottom=29;bgcolor=0xBABABA;dl=1;dr=1;dt=1;forecolor=0xEAEAEA;linearGradient=0;z=10};
 bkplus={cls="bkplus";text="qrfs扫码快传 - 共享文件、电脑剪贴板、手机输入法 - v2.8+";left=35;top=3;right=509;bottom=25;align="left";color=0x5A5A5A;dl=1;dt=1;z=11};
 btnConfig={cls="plus";text='\u2699 配置文件';left=635;top=110;right=768;bottom=132;bgcolor=0xFAFAFA;color=0x9A9A9A;dl=1;dr=1;dt=1;notify=1;transparent=1;z=25};
 btnOpen={cls="plus";text='\uF115';left=430;top=44;right=456;bottom=68;align="right";border={bottom=1;color=0x808080};dr=1;dt=1;font=LOGFONT(h=-16;name='FontAwesome');notify=1;z=1};
@@ -43,6 +45,7 @@ radioQrUploadDir={cls="radiobutton";text="上传文件";left=450;top=461;right=5
 static={cls="plus";text="端口：";left=467;top=77;right=530;bottom=101;align="right";dr=1;dt=1;font=LOGFONT(h=-14);transparent=1;z=4};
 static2={cls="plus";text="网站根目录：";left=15;top=45;right=129;bottom=69;align="right";dl=1;dt=1;font=LOGFONT(h=-14);transparent=1;z=5};
 syslink={cls="syslink";text='<a href="https://github.com/aardio/qrfs">开源项目</a>';left=43;top=463;right=176;bottom=483;bgcolor=0xFAFAFA;db=1;dl=1;z=15};
+btnTopmost={cls="plus";left=705;top=3;right=735;bottom=27;align="center";bgcolor=0xF0F0F0;color=0x5A5A5A;font=LOGFONT(h=-14;name='FontAwesome');iconText='\uF08D';iconStyle={align="center";font=LOGFONT(h=-14;name='FontAwesome');padding={top=2}};notify=1;z=26};
 txtMessage={cls="richedit";left=43;top=151;right=451;bottom=436;autohscroll=false;bgcolor=0xFAFAFA;db=1;dl=1;dr=1;dt=1;link=1;multiline=1;vscroll=1;z=3}
 )
 /*}}*/
@@ -375,8 +378,12 @@ ul.file-list li a {
 }
 
 ul.file-list li img { width: 24px; height: 24px; margin-right: 12px; object-fit: contain; flex-shrink: 0; }
+/* ★新增1行：目录 emoji 图标，尺寸对齐原来的 img */
+ul.file-list li span.ficon {width: 24px; font-size: 19px; line-height: 24px;text-align: center; margin-right: 12px; flex-shrink: 0;}
 ul.file-list li span.fname { white-space: nowrap; overflow: hidden; text-overflow: ellipsis; flex: 1; margin-right: 10px; }
 ul.file-list li span.fsize { font-size: 0.8rem; color: var(--text-secondary); white-space: nowrap; }
+
+ul.file-list li img { width: 24px; height: 24px; margin-right: 12px; object-fit: contain; flex-shrink: 0; }
 
 .del-btn {
 	background-color: var(--danger-color); color: white;
@@ -892,9 +899,8 @@ inputContent.focus();
 		
 		// 根目录显示上传目录入口
 		if(request.path=="/" && ..io.exist("/upload/")){
-			response.write('<li><a href="/upload/?t='+srvHttp.userToken+'"><img src="/?icon='++getSysIconIndex("/upload/")
-				++'"><span class="fname">📤 已上传的文件</span></a></li>\r\n');	
-		}
+	        response.write('<li><a href="/upload/?t='+srvHttp.userToken+'"><span class="ficon">📁</span><span class="fname">📤 已上传的文件</span></a></li>\r\n');	
+	    }
 		
 		if(!..fsys.isDir(request.path)){
 			return response.errorStatus(404); 
@@ -903,13 +909,12 @@ inputContent.focus();
 		var hasContent = false;
 		
 		for(i=1;#dir;1){
-			if(dir[i]==="upload" && request.path=="/") continue;
-			hasContent = true;
-			var iconIdx = getSysIconIndex(dir[i], true);
-			response.write('<li><a href="'
-				,inet.url.append(request.path, inet.url.encode(dir[i]))
-				,'?t='+srvHttp.userToken+'"><img src="/?icon='++(iconIdx)++'"><span class="fname">',string.html.escape(dir[i]),'</span></a></li>\r\n');
-		}
+	    if(dir[i]==="upload" && request.path=="/") continue;
+	        hasContent = true;
+	        response.write('<li><a href="'
+		    ,inet.url.append(request.path, inet.url.encode(dir[i]))
+		    ,'?t='+srvHttp.userToken+'"><span class="ficon">📁</span><span class="fname">',string.html.escape(dir[i]),'</span></a></li>\r\n');
+        }
 		
 		for(i=1;#file;1){
 			hasContent = true;
@@ -1050,7 +1055,8 @@ winform.btnStart.oncommand = function(id,event){
 		 	var token = string.right(customUrl,-8); 
 		 	
 		 	import process.natapp;
-		 	..natapp = process.natapp(token,winform.edi,"INFO")
+		 	//..natapp = process.natapp(token,winform.edi,"INFO")
+		 	..natapp = process.natapp(token, winform.txtMessage, "INFO")
 		 	if(natapp[["tunnelUrl"]]){
 		 		winform.natAppTunnelUrl = natapp.tunnelUrl;
 		 		winform.editPort.text = 80;
@@ -1138,6 +1144,23 @@ winform.btnOpenUpload.oncommand = function(id,event){
 	}
 }
 
+// ★【置顶】状态变量 + 统一设置函数（必须在使用之前定义）
+var isTopmost = false;
+
+var setTopmost = function(v){
+	isTopmost = v;
+	::SetWindowPos(winform.hwnd, v ? -1 : -2, 0, 0, 0, 0, 0x3 | 0x2);
+	winform.btnTopmost.background = v ? 0xFFFF0000 : 0xF0F0F0;
+	winform.btnTopmost.color      = v ? 0xFFFFFFFF : 0xFF5A5A5A;
+	winform.btnTopmost.redraw();
+}
+
+// ★【置顶按钮】
+winform.btnTopmost.onMouseDown = function(){
+	setTopmost(!isTopmost);
+	return 0;
+}
+
 // ★【配置按钮】点击后直接用记事本打开 config.ini
 winform.btnConfig.oncommand = function(id,event){
 	var cfgPath = io.fullpath("\config.ini");
@@ -1173,15 +1196,30 @@ WWWRoot=
 	}
 }
 
-// ★【二维码可点】鼠标移到二维码上变小手
-winform.qr.cursor = 0x1F/*_IDC_HAND*/;
+// 鼠标移到二维码上变手型
+winform.qr.cursor = 0x7F89/*_IDC_HAND*/;
 
-// ★【二维码可点】点击二维码 → 用默认浏览器打开当前 URL
 winform.qr.onMouseClick = function(){
-	if(#currentQrUrl){
-		process.openUrl(currentQrUrl);
-	}
+	var m = win.ui.popmenu(winform);
+	m.add("打开链接", function(){ if(#currentQrUrl) process.openUrl(currentQrUrl); });
+	m.add("复制链接", function(){ if(#currentQrUrl) win.clip.write(currentQrUrl); });
+	m.add(isTopmost ? "已置顶 ✔" : "窗口置顶", function(){
+		setTopmost(!isTopmost);
+	});
+	m.add("最小化", function(){
+    winform.show(false);
+    if(!winform.tray){
+        winform.tray = win.util.tray(winform);
+        winform.tray.tip = "qrfs - 扫码快传";
+        winform.onTrayMessage = {
+            [0x202/*_WM_LBUTTONUP*/] = function(){ winform.restoreFromTray(); };
+            [0x205/*_WM_RBUTTONUP*/] = function(){ winform.restoreFromTray(); };
+        }
+    }
+});
+	m.popup();
 }
+
 
 // ★修复 5：恢复原样——剪贴板一变就广播，让所有客户端都能收到。
 //（客户端自己判断是否为自己的回声，来决定要不要覆盖 textarea）
@@ -1216,7 +1254,8 @@ wsrv.onMessage = function(hSocket,msg){
 					msg.prompt( "请修复语音识别结果: " + text );
 			 		 
 			 		import winex.loading;
-					var loading = winex.loading("正在优化",hFocus)
+					//var loading = winex.loading("正在优化",hFocus)
+					var loading = winex.loading("正在优化", winform.hwnd)
 				
 					var resp,err = aiClient.messages(msg,
 						function(deltaText,reasoning){
@@ -1290,6 +1329,44 @@ winform.radioQrInputMethod.oncommand = function(id,event){
 	updateHomeDir();
 }
 
+/*
+//左侧文本框不进入输入模式
+winform.txtMessage.readonly = true;
+*/
+
+/*托盘图标开始*/
+import win.util.tray;
+import mouse;
+
+// 恢复窗口：显示 + 销毁托盘图标
+winform.restoreFromTray = function(){
+    if(winform.tray){
+        winform.tray.delete();
+        winform.tray = null;
+    }
+    winform.show(true);
+    win.setForeground(winform.hwnd, true);
+}
+
+// 拦截最小化：隐藏窗口 + 动态创建托盘图标
+winform.onMinimize = function(lParam){
+    winform.show(false);
+
+    if(!winform.tray){
+        winform.tray = win.util.tray(winform);
+        winform.tray.tip = "qrfs - 扫码快传";
+
+        winform.onTrayMessage = {
+            [0x202/*_WM_LBUTTONUP*/] = function(){ winform.restoreFromTray(); };
+            [0x205/*_WM_RBUTTONUP*/] = function(){ winform.restoreFromTray(); };
+        }
+    }
+
+    return true;
+}
+/*托盘图标结束*/
+
+
 winform.show();  
 win.ui.simpleWindow2(winform);
 
@@ -1327,7 +1404,8 @@ winform.btnSetting.oncommand = function(id,event){
 	var frmSetting = web.rest.aiChat.settingForm(this,config.aiOpt);
 	
 	if( frmSetting.doModal(this) ){
-		..table.assign(config.aiOpt,config.itemData[config.selItem] );
+		//..table.assign(config.aiOpt,config.itemData[config.selItem] );
+		..table.assign(config.aiOpt, frmSetting.itemData[frmSetting.selItem]);
 	}
 }
 
@@ -1408,6 +1486,7 @@ winform.btnConfig.skin({
 		disabled= 0xFFCCCCCC;
 	}
 })
+
 
 winform.bkplus.onDrawBackground = function(graphics,rc){
 	
