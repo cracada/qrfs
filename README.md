@@ -32,13 +32,14 @@
 
 15.增加最小化到托盘功能
 
+16.单实例运行检测
 
 
 
 
 ### PS:
 
-1.以上所有修改基于https://github.com/aardio/qrfs 2026/02/09最后提交的版本
+1.以上所有修改基于https://github.com/aardio/qrfs 2026/02/09最后提交的版本(2f8a1d6)
 
 2.config\temp\host这个临时目录是硬编码在文件中的，需要修改以下三个文件:
 

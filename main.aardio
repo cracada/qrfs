@@ -21,34 +21,51 @@ import win.clip.viewer;
 /*DSG{{*/
 var winform = win.form(text="qrfs - 扫码快传 v2.8+";right=798;bottom=491;bgcolor=0xFAFAFA;border="none";max=false)
 winform.add(
-bk={cls="bk";left=0;top=-5;right=799;bottom=29;bgcolor=0xBABABA;dl=1;dr=1;dt=1;forecolor=0xEAEAEA;linearGradient=0;z=10};
-bkplus={cls="bkplus";text="qrfs扫码快传 - 共享文件、电脑剪贴板、手机输入法 - v2.8+";left=35;top=3;right=509;bottom=25;align="left";color=0x5A5A5A;dl=1;dt=1;z=11};
-btnConfig={cls="plus";text='\u2699 配置文件';left=635;top=110;right=768;bottom=132;bgcolor=0xFAFAFA;color=0x9A9A9A;dl=1;dr=1;dt=1;notify=1;transparent=1;z=25};
-btnOpen={cls="plus";text='\uF115';left=430;top=44;right=456;bottom=68;align="right";border={bottom=1;color=0x808080};dr=1;dt=1;font=LOGFONT(h=-16;name='FontAwesome');notify=1;z=1};
-btnOpenUpload={cls="plus";text="上传目录";left=473;top=40;right=614;bottom=69;align="left";dl=1;dt=1;font=LOGFONT(h=-14);iconStyle={align="left";font=LOGFONT(h=-15;name='FontAwesome');padding={left=8;top=2}};iconText='\uF07C';notify=1;textPadding={left=27;bottom=1};z=12};
-btnSetting={cls="plus";left=1737;top=455;right=1738;bottom=484;bgcolor=0xFAFAFA;db=1;dl=1;font=LOGFONT(h=-16;name='FontAwesome');hide=1;iconStyle={align="left";font=LOGFONT(h=-16;name='FontAwesome');padding={left=7;top=3}};iconText='\uF013';notify=1;z=23};
-btnStart={cls="plus";text="重启服务";left=635;top=69;right=768;bottom=106;align="left";bgcolor=0xD9A100;border={radius=8};color=0xFFFFFF;dr=1;dt=1;font=LOGFONT(h=-15);iconStyle={align="left";font=LOGFONT(h=-19;name='FontAwesome');padding={left=16}};iconText='\uF233';notify=1;textPadding={left=45;bottom=2};z=6};
+bk={cls="bk";left=0;top=-5;right=799;bottom=29;anchors={left=1;top=1;right=1};bgcolor=0xfdddb9;forecolor=0xfdddb9;linearGradient=0;z=10};
+bkplus={cls="bkplus";text="qrfs扫码快传 - 共享文件、电脑剪贴板、手机输入法 - v2.8+";left=35;top=3;right=509;bottom=25;align="left";anchors={left=1;top=1};color=0x000000;z=11};
+btnConfig={cls="plus";text='\u2699 配置文件';left=635;top=110;right=768;bottom=132;anchors={left=1;top=1;right=1};bgcolor=0xFAFAFA;color=0x9A9A9A;notify=1;transparent=1;z=25};
+btnOpen={cls="plus";text='\uF115';left=430;top=44;right=456;bottom=68;align="right";anchors={top=1;right=1};border={bottom=1;color=0x808080};font=LOGFONT(h=-16;name='FontAwesome');notify=1;z=1};
+btnOpenUpload={cls="plus";text="上传目录";left=473;top=40;right=614;bottom=69;align="left";anchors={left=1;top=1};font=LOGFONT(h=-14);iconStyle={align="left";font=LOGFONT(h=-15;name='FontAwesome');padding={left=8;top=2}};iconText='\uF07C';notify=1;textPadding={left=27;bottom=1};z=12};
+btnSetting={cls="plus";left=1737;top=455;right=1738;bottom=484;anchors={left=1;bottom=1};bgcolor=0xFAFAFA;font=LOGFONT(h=-16;name='FontAwesome');hide=1;iconStyle={align="left";font=LOGFONT(h=-16;name='FontAwesome');padding={left=7;top=3}};iconText='\uF013';notify=1;z=23};
+btnStart={cls="plus";text="重启服务";left=635;top=69;right=768;bottom=106;align="left";anchors={top=1;right=1};bgcolor=0xD9A100;border={radius=8};color=0xFFFFFF;font=LOGFONT(h=-15);iconStyle={align="left";font=LOGFONT(h=-19;name='FontAwesome');padding={left=16}};iconText='\uF233';notify=1;textPadding={left=45;bottom=2};z=6};
+btnTopmost={cls="plus";left=705;top=3;right=735;bottom=27;color=0x5A5A5A;font=LOGFONT(h=-14;name='FontAwesome');iconStyle={font=LOGFONT(h=-14;name='FontAwesome');padding={top=2}};iconText='\uF08D';notify=1;z=26};
 chkAiOpt={cls="checkbox";text="AI 优化";left=1642;top=461;right=1656;bottom=483;bgcolor=0xFAFAFA;hide=1;z=22};
 chkPublicAddress={cls="checkbox";text="公网 IP";left=486;top=109;right=556;bottom=131;bgcolor=0xFFFFFF;z=24};
-editDocumentRoot={cls="plus";left=131;top=46;right=430;bottom=68;align="left";border={bottom=1;color=0xC0C0C0};clip=1;dl=1;dr=1;dt=1;editable="edit";textPadding={bottom=1};z=8};
-editHost={cls="plus";left=131;top=75;right=456;bottom=97;align="left";border={bottom=1;color=0xC0C0C0};dr=1;dt=1;editable="edit";textPadding={bottom=1};z=19};
-editPassword={cls="plus";left=131;top=107;right=456;bottom=129;align="left";border={bottom=1;color=0xC0C0C0};dr=1;dt=1;editable="edit";password=1;textPadding={right=24;bottom=1};z=14};
-editPort={cls="plus";left=529;top=78;right=615;bottom=100;align="left";border={bottom=1;color=0xC0C0C0};dr=1;dt=1;editable=1;notify=1;textPadding={bottom=1};z=9};
-plus={cls="plus";text="密码：";left=71;top=108;right=129;bottom=132;align="right";dl=1;dr=1;dt=1;font=LOGFONT(h=-14);transparent=1;z=13};
-plus2={cls="plus";left=38;top=148;right=455;bottom=442;align="left";border={color=0xC0C0C0;radius=8;width=1};db=1;dl=1;dr=1;dt=1;font=LOGFONT(h=-14);textPadding={left=16};valign="top";z=2};
-plus3={cls="plus";text="自定义网址：";left=9;top=77;right=129;bottom=101;align="right";dr=1;dt=1;font=LOGFONT(h=-14);transparent=1;z=20};
-qr={cls="plus";left=483;top=148;right=768;bottom=433;border={radius=8};db=1;dr=1;dt=1;foreRepeat="scale";repeat="scale";z=7};
-radioQrClipboard={cls="radiobutton";text="共享剪贴板";left=542;top=461;right=629;bottom=483;bgcolor=0xFAFAFA;db=1;dr=1;z=18};
-radioQrInputMethod={cls="radiobutton";text="共享输入法";left=641;top=461;right=737;bottom=483;bgcolor=0xFAFAFA;db=1;dr=1;z=21};
-radioQrRootDir={cls="radiobutton";text="根目录";left=359;top=461;right=446;bottom=483;bgcolor=0xFAFAFA;db=1;dr=1;z=16};
-radioQrUploadDir={cls="radiobutton";text="上传文件";left=450;top=461;right=537;bottom=483;bgcolor=0xFAFAFA;db=1;dr=1;z=17};
-static={cls="plus";text="端口：";left=467;top=77;right=530;bottom=101;align="right";dr=1;dt=1;font=LOGFONT(h=-14);transparent=1;z=4};
-static2={cls="plus";text="网站根目录：";left=15;top=45;right=129;bottom=69;align="right";dl=1;dt=1;font=LOGFONT(h=-14);transparent=1;z=5};
-syslink={cls="syslink";text='<a href="https://github.com/aardio/qrfs">开源项目</a>';left=43;top=463;right=176;bottom=483;bgcolor=0xFAFAFA;db=1;dl=1;z=15};
-btnTopmost={cls="plus";left=705;top=3;right=735;bottom=27;align="center";bgcolor=0xF0F0F0;color=0x5A5A5A;font=LOGFONT(h=-14;name='FontAwesome');iconText='\uF08D';iconStyle={align="center";font=LOGFONT(h=-14;name='FontAwesome');padding={top=2}};notify=1;z=26};
-txtMessage={cls="richedit";left=43;top=151;right=451;bottom=436;autohscroll=false;bgcolor=0xFAFAFA;db=1;dl=1;dr=1;dt=1;link=1;multiline=1;vscroll=1;z=3}
+editDocumentRoot={cls="plus";left=131;top=46;right=430;bottom=68;align="left";anchors={left=1;top=1;right=1};border={bottom=1;color=0xC0C0C0};clip=1;editable="edit";textPadding={bottom=1};z=8};
+editHost={cls="plus";left=131;top=75;right=456;bottom=97;align="left";anchors={top=1;right=1};border={bottom=1;color=0xC0C0C0};editable="edit";textPadding={bottom=1};z=19};
+editPassword={cls="plus";left=131;top=107;right=456;bottom=129;align="left";anchors={top=1;right=1};border={bottom=1;color=0xC0C0C0};editable="edit";password=1;textPadding={right=24;bottom=1};z=14};
+editPort={cls="plus";left=529;top=78;right=615;bottom=100;align="left";anchors={top=1;right=1};border={bottom=1;color=0xC0C0C0};editable=1;notify=1;textPadding={bottom=1};z=9};
+plus={cls="plus";text="密码：";left=71;top=108;right=129;bottom=132;align="right";anchors={left=1;top=1;right=1};font=LOGFONT(h=-14);transparent=1;z=13};
+plus2={cls="plus";left=38;top=148;right=455;bottom=442;align="left";anchors={left=1;top=1;right=1;bottom=1};border={color=0xC0C0C0;radius=8;width=1};font=LOGFONT(h=-14);textPadding={left=16};valign="top";z=2};
+plus3={cls="plus";text="自定义网址：";left=9;top=77;right=129;bottom=101;align="right";anchors={top=1;right=1};font=LOGFONT(h=-14);transparent=1;z=20};
+qr={cls="plus";left=483;top=148;right=768;bottom=433;anchors={top=1;right=1;bottom=1};border={radius=8};foreRepeat="scale";repeat="scale";z=7};
+radioQrClipboard={cls="radiobutton";text="共享剪贴板";left=542;top=461;right=629;bottom=483;anchors={right=1;bottom=1};bgcolor=0xFAFAFA;z=18};
+radioQrInputMethod={cls="radiobutton";text="共享输入法";left=641;top=461;right=737;bottom=483;anchors={right=1;bottom=1};bgcolor=0xFAFAFA;z=21};
+radioQrRootDir={cls="radiobutton";text="根目录";left=359;top=461;right=446;bottom=483;anchors={right=1;bottom=1};bgcolor=0xFAFAFA;z=16};
+radioQrUploadDir={cls="radiobutton";text="上传文件";left=450;top=461;right=537;bottom=483;anchors={right=1;bottom=1};bgcolor=0xFAFAFA;z=17};
+static={cls="plus";text="端口：";left=467;top=77;right=530;bottom=101;align="right";anchors={top=1;right=1};font=LOGFONT(h=-14);transparent=1;z=4};
+static2={cls="plus";text="网站根目录：";left=15;top=45;right=129;bottom=69;align="right";anchors={left=1;top=1};font=LOGFONT(h=-14);transparent=1;z=5};
+syslink={cls="syslink";text='<a href="https://github.com/aardio/qrfs">开源项目</a>';left=43;top=463;right=176;bottom=483;anchors={left=1;bottom=1};bgcolor=0xFAFAFA;z=15};
+txtMessage={cls="richedit";left=43;top=151;right=451;bottom=436;anchors={left=1;top=1;right=1;bottom=1};autohscroll=false;bgcolor=0xFAFAFA;link=1;multiline=1;vscroll=1;z=3}
 )
 /*}}*/
+
+
+// ★ 单实例控制 ★
+import process.mutex;
+
+var mutex = process.mutex("qrfs_v2.8_single_instance");
+
+if( mutex.conflict ){
+    win.msgbox(`
+qrfs 已经在运行了。
+
+请检查系统托盘或任务栏，找到已打开的窗口。
+`, "qrfs - 扫码快传",0);
+    win.quitMessage();
+    return;
+}
+
 
 if( fsys.update.simpleMain(
 	"qrfs - 扫码快传",
@@ -1200,14 +1217,29 @@ WWWRoot=
 winform.qr.cursor = 0x7F89/*_IDC_HAND*/;
 
 winform.qr.onMouseClick = function(){
-	var m = win.ui.popmenu(winform);
-	m.add("打开链接", function(){ if(#currentQrUrl) process.openUrl(currentQrUrl); });
-	m.add("复制链接", function(){ if(#currentQrUrl) win.clip.write(currentQrUrl); });
-	m.add(isTopmost ? "已置顶 ✔" : "窗口置顶", function(){
-		setTopmost(!isTopmost);
-	});
-	m.add("最小化", function(){ winform.show(false); });
-	m.popup();
+    var m = win.ui.popmenu(winform);
+    m.add("打开链接", function(){ if(#currentQrUrl) process.openUrl(currentQrUrl); });
+    m.add("复制链接", function(){ if(#currentQrUrl) win.clip.write(currentQrUrl); });
+    m.add();
+
+m.add("保存二维码为图片", function(){
+    if(!#currentQrUrl) return;
+    var path = fsys.dlg.save("PNG图片(*.png)|*.png", "png", "qrfs二维码.png", winform);
+    if(!#path) return;
+    // 关键：copyBitmap(500) 缩放到 500px 宽
+    var bmp = qrencode.bitmap(currentQrUrl).copyBitmap(300);
+    bmp.save(path);
+});
+
+m.add("复制二维码图片", function(){
+    if(!#currentQrUrl) return;
+    import win.clip.bitmap;
+    // 同样缩放到 500px 宽
+    var bmp = qrencode.bitmap(currentQrUrl).copyBitmap(300);
+    win.clip.bitmap.write(bmp);
+});
+
+    m.popup();
 }
 
 
