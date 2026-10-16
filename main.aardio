@@ -4,7 +4,7 @@ import fsys.info;
 import fsys.config;
 import fsys.dlg.dir;
 import fsys.ini;              // 【新增】读取外部 ini 配置文件
-import fsys.update.simpleMain;
+// import fsys.update.simpleMain;  // 【启动加速】不再联网检查更新
 import process;
 import web.socket.server;
 import win.ui.simpleWindow2;
@@ -17,12 +17,29 @@ import win;
 import win.ui;
 import win.clip;
 import win.clip.viewer;
+
+// ★ 单实例控制 ★
+import process.mutex;
+
+var mutex = process.mutex("qrfs_v2.8_single_instance");
+
+if( mutex.conflict ){
+    win.msgbox(`
+qrfs 已经在运行了。
+
+请检查系统托盘或任务栏，找到已打开的窗口。
+`, "qrfs - 扫码快传",0);
+    win.quitMessage();
+    return;
+}
+
+
 /*F0F0F0*/
 /*DSG{{*/
 var winform = win.form(text="qrfs - 扫码快传 v2.8+";right=798;bottom=491;bgcolor=0xFAFAFA;border="none";max=false)
 winform.add(
 bk={cls="bk";left=0;top=-5;right=799;bottom=29;anchors={left=1;top=1;right=1};bgcolor=0xfdddb9;forecolor=0xfdddb9;linearGradient=0;z=10};
-bkplus={cls="bkplus";text="qrfs扫码快传 - 共享文件、电脑剪贴板、手机输入法 - v2.8+";left=35;top=3;right=509;bottom=25;align="left";anchors={left=1;top=1};color=0x000000;z=11};
+bkplus={cls="bkplus";text="QRFS扫码快传 - v2.8+";left=35;top=3;right=509;bottom=25;align="left";anchors={left=1;top=1};color=0x000000;z=11};
 btnConfig={cls="plus";text='\u2699 配置文件';left=635;top=110;right=768;bottom=132;anchors={left=1;top=1;right=1};bgcolor=0xFAFAFA;color=0x9A9A9A;notify=1;transparent=1;z=25};
 btnOpen={cls="plus";text='\uF115';left=430;top=44;right=456;bottom=68;align="right";anchors={top=1;right=1};border={bottom=1;color=0x808080};font=LOGFONT(h=-16;name='FontAwesome');notify=1;z=1};
 btnOpenUpload={cls="plus";text="上传目录";left=473;top=40;right=614;bottom=69;align="left";anchors={left=1;top=1};font=LOGFONT(h=-14);iconStyle={align="left";font=LOGFONT(h=-15;name='FontAwesome');padding={left=8;top=2}};iconText='\uF07C';notify=1;textPadding={left=27;bottom=1};z=12};
@@ -50,30 +67,14 @@ txtMessage={cls="richedit";left=43;top=151;right=451;bottom=436;anchors={left=1;
 )
 /*}}*/
 
-
-// ★ 单实例控制 ★
-import process.mutex;
-
-var mutex = process.mutex("qrfs_v2.8_single_instance");
-
-if( mutex.conflict ){
-    win.msgbox(`
-qrfs 已经在运行了。
-
-请检查系统托盘或任务栏，找到已打开的窗口。
-`, "qrfs - 扫码快传",0);
-    win.quitMessage();
-    return;
-}
-
-
-if( fsys.update.simpleMain(
-	"qrfs - 扫码快传",
-	"http://d.aardio.com/qrfs/update/",
-	io.appData("/aardio/std/qrfs/app/update"),
-	function(version,description,status){})){
-	return 0;	
-}
+// 【启动加速】不再联网检查更新
+// if( fsys.update.simpleMain(
+// 	"qrfs - 扫码快传",
+// 	"http://d.aardio.com/qrfs/update/",
+// 	io.appData("/aardio/std/qrfs/app/update"),
+// 	function(version,description,status){})){
+// 	return 0;	
+// }
 
 config = fsys.config(io.appData("aardio/std/qrfs")); 
 
@@ -120,20 +121,19 @@ winform.editHost.text = config.winform.editHost;
 
 // ============================================================
 // 【新增】读取外部配置文件 config.ini（与 EXE 同目录）
-// ★ 关键：fsys.ini.read 无法区分"未写 Password"和"Password= 空值"，
-//   所以用读原文的方式判断用户是否显式写了 Password=
 // ============================================================
 var cfgPort = null;
 var cfgPassword = null;
-var cfgRoot = null;        // ★【新增 WWWRoot】网站根目录
+var cfgRoot = null;
+var cfgClipboardMax = null;
 
 var iniPath = io.fullpath("\config.ini");
 if(io.exist(iniPath)){
     var ini = fsys.ini(iniPath);
     cfgPort = ini.read("Server","Port");
-    cfgRoot = ini.read("Server","WWWRoot");   // ★【新增 WWWRoot】
+    cfgRoot = ini.read("Server","WWWRoot");
+    cfgClipboardMax = ini.read("Server","ClipboardMax");
     
-    // 逐行解析原文，判断是否存在 Password= 这一行
     var iniRaw = string.load(iniPath) : "";
     for(line in string.lines(iniRaw)) {
         var t = string.trim(line);
@@ -147,12 +147,11 @@ if(io.exist(iniPath)){
     winform.txtMessage.print("已加载配置文件：" + iniPath);
     if(cfgPort) winform.txtMessage.print("端口：" + cfgPort);
     if(cfgRoot && #string.trim(cfgRoot)) winform.txtMessage.print("网站根目录：" + string.trim(cfgRoot));
+    if(cfgClipboardMax && #string.trim(cfgClipboardMax)) winform.txtMessage.print("剪贴板提醒阈值：" + string.trim(cfgClipboardMax) + " 字节");
     if(cfgPassword !== null) winform.txtMessage.print("密码：" + (#cfgPassword ? cfgPassword : "（空）"));
 }
 // ============================================================
 
-// ★【新增 WWWRoot】config.ini 里指定了 WWWRoot 且目录存在 → 用它覆盖默认根目录
-//   未写该项、为空、或目录不存在 → 沿用现有逻辑（上次配置/桌面）
 if(cfgRoot){
     var r = string.trim(cfgRoot);
     if(#r && io.exist(r)){
@@ -164,33 +163,10 @@ if(cfgRoot){
     }
 }
 
-// ★【端口自动切换】引入判断端口是否被占用的模块
-import wsock.tcp.server;
-
-// ★【端口自动切换】找一个可用端口：优先用首选端口，被占用则随机挑一个空闲端口
-var findAvailablePort = function(preferPort){
-	// 优先用指定的端口
-	if(preferPort && wsock.tcp.server.isFreePort(preferPort)){
-		return preferPort;
-	}
-	// 随机找一个空闲端口（最多尝试 50 次）
-	for(i=1;50;1){
-		var p = math.random(20000, 60000);
-		if( wsock.tcp.server.isFreePort(p) ){
-			return p;
-		}
-	}
-	return null;
-}
-
 var wsrv = web.socket.server();
 var srvHttp = wsrv.httpServer;
 srvHttp.documentRoot = winform.editDocumentRoot.text;
 
-// ★ 【修改】密码逻辑：
-//   - 配置文件里没写 Password 项     → 自动生成随机密码
-//   - 配置文件里写了 Password 但为空 → 空密码（服务端不验证，谁都能连）
-//   - 配置文件里写了 Password 有内容 → 用该密码
 if(cfgPassword !== null){
     srvHttp.userToken = cfgPassword;
 } else {
@@ -198,14 +174,61 @@ if(cfgPassword !== null){
 }
 winform.editPassword.text = srvHttp.userToken;
 
-// 【新增】如果配置文件指定了端口，写入输入框
-if(cfgPort){
-    winform.editPort.text = cfgPort;
+// ============================================================
+// 【端口启动】统一入口
+// ============================================================
+var applyServerConfig = function(){
+    srvHttp.documentRoot = fsys.isDir(winform.editDocumentRoot.text)
+        ? winform.editDocumentRoot.text
+        : srvHttp.documentRoot;
+    srvHttp.userToken = winform.editPassword.text;
 }
+
+var tryStartOnPort = function(port){
+    try{
+        srvHttp.start("0.0.0.0", port);
+    }
+    catch(e){ }
+    var ip, actualPort = srvHttp.getLocalIp();
+    return (actualPort == port);
+}
+
+var startWithFallback = function(desiredPort){
+    if( tryStartOnPort(desiredPort) ){
+        return desiredPort;
+    }
+    try{ srvHttp.close(); }catch(e){}
+    for(i=1;10;1){
+        var p = math.random(20000, 60000);
+        if( tryStartOnPort(p) ){
+            return p;
+        }
+        try{ srvHttp.close(); }catch(e){}
+    }
+    return null;
+}
+// ============================================================
 
 var cacheSysIcons = {}
 var cacheClientIps = {}
-var currentQrUrl = "";   // ★【二维码可点】记住当前二维码指向的 URL
+var currentQrUrl = "";
+
+// ============================================================
+// ★剪贴板提醒阈值（超过此值时，手机端给 toast 提示）
+//   默认 16384，被 config.ini 的 ClipboardMax 覆盖
+//   ★ 此值不再限制任何方向的传输，只用于"提醒"
+// ============================================================
+config.winform.clipboardMax = 16384;
+
+if(cfgClipboardMax && #string.trim(cfgClipboardMax)){
+    var v = tonumber(string.trim(cfgClipboardMax));
+    if(v && v >= 1 && v <= 100*1024*1024){
+        config.winform.clipboardMax = v;
+    }
+    else{
+        winform.txtMessage.print("配置文件里的 ClipboardMax 无效（" + cfgClipboardMax + "），使用默认 16384");
+    }
+}
 
 var getSysIconIndex = function(path, isDir){
     var sfi = fsys.info.get(
@@ -287,7 +310,6 @@ body {
 	-webkit-font-smoothing: antialiased;
 }
 
-/* 顶部导航栏 */
 .nav-header {
 	position: fixed;
 	top: 0;
@@ -337,9 +359,7 @@ body {
 	gap: 2px;
 }
 
-.nav-tabs a .nav-icon {
-	font-size: 1.2rem;
-}
+.nav-tabs a .nav-icon { font-size: 1.2rem; }
 
 .nav-tabs a:hover {
 	color: var(--accent-color);
@@ -352,11 +372,7 @@ body {
 	background: rgba(3, 102, 214, 0.08);
 }
 
-/* 上传区域样式 */
-.upload-section {
-	padding: 15px;
-	margin-bottom: 10px;
-}
+.upload-section { padding: 15px; margin-bottom: 10px; }
 
 .filepond--root { margin-bottom: 0; min-height: 120px !important; }
 .filepond--panel-root { background-color: var(--card-bg); border: 2px dashed var(--border-color); border-radius: 12px; }
@@ -395,12 +411,9 @@ ul.file-list li a {
 }
 
 ul.file-list li img { width: 24px; height: 24px; margin-right: 12px; object-fit: contain; flex-shrink: 0; }
-/* ★新增1行：目录 emoji 图标，尺寸对齐原来的 img */
 ul.file-list li span.ficon {width: 24px; font-size: 19px; line-height: 24px;text-align: center; margin-right: 12px; flex-shrink: 0;}
 ul.file-list li span.fname { white-space: nowrap; overflow: hidden; text-overflow: ellipsis; flex: 1; margin-right: 10px; }
 ul.file-list li span.fsize { font-size: 0.8rem; color: var(--text-secondary); white-space: nowrap; }
-
-ul.file-list li img { width: 24px; height: 24px; margin-right: 12px; object-fit: contain; flex-shrink: 0; }
 
 .del-btn {
 	background-color: var(--danger-color); color: white;
@@ -410,7 +423,6 @@ ul.file-list li img { width: 24px; height: 24px; margin-right: 12px; object-fit:
 	margin-left: 1px;
 }
 
-/* 功能容器 */
 .func-container {
 	padding: 0 15px; 
 	display: flex; 
@@ -438,7 +450,6 @@ ul.file-list li img { width: 24px; height: 24px; margin-right: 12px; object-fit:
 .btn-send { background-color: #2ecc71; }
 .btn-clear { background-color: #95a5a6; }
 
-/* 提示卡片 */
 .tip-card {
 	background: var(--upload-area-bg);
 	border-radius: 8px;
@@ -455,7 +466,6 @@ ul.file-list li img { width: 24px; height: 24px; margin-right: 12px; object-fit:
 	vertical-align: middle;
 }
 
-/* 链接卡片 */
 .link-card {
 	display: flex;
 	align-items: center;
@@ -484,27 +494,20 @@ ul.file-list li img { width: 24px; height: 24px; margin-right: 12px; object-fit:
 }
 
 .toast {
-	position: fixed; bottom: 80px; left: 50%; transform: translateX(-50%);
+	position: fixed;
+	top: calc(var(--nav-height) + max(20px, env(safe-area-inset-top)));
+	left: 50%; transform: translateX(-50%);
 	background: rgba(0,0,0,0.8); color: #fff; padding: 12px 24px;
 	border-radius: 25px; font-size: 0.9em; z-index: 9999;
 	opacity: 0; transition: opacity 0.3s; pointer-events: none;
+	max-width: calc(100vw - 40px); text-align: center;
 }
 .toast.show { opacity: 1; }
 
 .empty-tip { text-align: center; padding: 40px; color: var(--text-secondary); }
 
-.success-msg {
-	text-align: center;
-	padding: 30px;
-	color: #2ecc71;
-	font-size: 1.1rem;
-}
-
-.success-msg .check-icon {
-	font-size: 3rem;
-	margin-bottom: 15px;
-	display: block;
-}
+.success-msg { text-align: center; padding: 30px; color: #2ecc71; font-size: 1.1rem; }
+.success-msg .check-icon { font-size: 3rem; margin-bottom: 15px; display: block; }
 </style>
 </head>
 <body>
@@ -523,10 +526,9 @@ ul.file-list li img { width: 24px; height: 24px; margin-right: 12px; object-fit:
 <script>
 let websocket;
 let wsReconnectAttempts = 0;
-// ★修复 1：记录本机剪贴板最后编辑时间、最后发送的值、以及最近发送过的所有值（用于忽略自己的回声）
 window.clipboardLastEditTime = 0;
 window.clipboardLastSentValue = null;
-window.clipboardSentHistory = new Map();   // value -> timestamp
+window.clipboardSentHistory = new Map();
 const wsUrl = "`+wsrv.getUrl("ws",true)+`";
 
 function connectWebSocket() {
@@ -537,23 +539,20 @@ function connectWebSocket() {
 			`+(activeTab=="files"?"window.location.reload();":"")+`
 			return;
 		}
-		// ★修复 2：收到远端内容时不再无条件全选，避免覆盖正在输入的文字
 		const el = document.getElementById('clipboardContent');
 		if (!el) return;
+
 		if (evt.data === el.value) return;
 
-		// 忽略自己最近发出、又被服务端广播回来的内容（含乱序到达）
 		if (window.clipboardSentHistory.has(evt.data)) {
 			return;
 		}
 
-		// 用户正在连续打字（1 秒内输入过）→ 不打扰他
 		if (document.activeElement === el
 			&& Date.now() - window.clipboardLastEditTime < 1000) {
 			return;
 		}
 
-		// 静默替换内容，光标落到末尾
 		el.value = evt.data;
 		if (document.activeElement === el) {
 			el.selectionStart = el.selectionEnd = el.value.length;
@@ -569,11 +568,39 @@ function connectWebSocket() {
 }
 connectWebSocket();
 
-function showToast(msg) {
+// ★ 超长提醒：
+//   电脑端：整个会话只弹一次
+//   手机端：首次弹一次，之后距上次提示满 10 秒才再弹（节流）
+let tooLongNotifiedPC = false;
+let lastTooLongTipTime = 0;
+
+function notifyTooLong(len) {
+	if (typeof CLIPBOARD_MAX === 'undefined') return;
+	if (len <= CLIPBOARD_MAX) return;
+
+	var isMobile = /Android|iPhone|iPad|iPod/i.test(navigator.userAgent);
+	var msg = '内容较长（' + Math.round(len/1024) + 'K），同步可能较慢';
+
+	if (isMobile) {
+		// 手机端：节流 7.5=2.5*3 秒
+		var now = Date.now();
+		if (now - lastTooLongTipTime < 7500) return;
+		lastTooLongTipTime = now;
+		showToast(msg, 2500);
+	} else {
+		// 电脑端：整个会话只弹一次
+		if (tooLongNotifiedPC) return;
+		tooLongNotifiedPC = true;
+		showToast(msg, 3000);
+	}
+}
+
+function showToast(msg, duration) {
 	const toast = document.getElementById('toast');
 	toast.textContent = msg;
 	toast.classList.add('show');
-	setTimeout(() => toast.classList.remove('show'), 2000);
+	clearTimeout(toast._timer);
+	toast._timer = setTimeout(() => toast.classList.remove('show'), duration || 2000);
 }
 
 function deleteFile(path, btn) {
@@ -622,7 +649,6 @@ srvHttp.run(
 		response.headers["Access-Control-Allow-Origin"] = "*";
 		response.headers["Access-Control-Allow-Headers"] = "*"
 	
-		// 图标请求
 		if(request.path=="/main.aardio" && request.get["icon"]){
 			var iconIdx = tonumber(request.get["icon"]);
 			if(iconIdx!==null && cacheSysIcons[iconIdx]){
@@ -634,8 +660,7 @@ srvHttp.run(
 			return;
 		}
 		
-		// 上传处理
-		if(request.path=="/<upload>/main.aardio"){ //注意请求目录会自动附加默认文档路径 /main.aardio 
+		if(request.path=="/<upload>/main.aardio"){
 			if(request.method=="DELETE"){
 				var path = request.postData();
 				if(path && string.startsWith(path,"/upload/")){
@@ -661,11 +686,7 @@ srvHttp.run(
 				var ok,err = fileData.filepond.save(fileName); 
 				if(!ok){ response.error(err); }
 				
-				
-				winform.txtMessage.text = 'HTTP 服务端已启动: \n'; 
-				winform.txtMessage.print( srvHttp.getUrl(,true) + "/?t=" + srvHttp.userToken  );
-				winform.txtMessage.print( "" ); 	
-				winform.txtMessage.print( "上传成功：" + fileName ); 	
+				winform.txtMessage.print( "上传成功：" + fileData.filepond.filename ); 	 	
 				
 				response.contentType = "text/plain";
 				response.write("/upload/",fileData.filepond.filename)
@@ -673,20 +694,14 @@ srvHttp.run(
 			} 		
 		}
 		
-		// 确定当前页面类型
 		var pageType = "files";
 		if(request.path=="/<clipboard>/main.aardio") pageType = "clipboard";
 		elseif(request.path=="/<input>/main.aardio") pageType = "input";
 		elseif(request.path=="/<upload>/main.aardio") pageType = "upload";
 		elseif(string.startsWith(request.path,"/upload/")) pageType = "files";
 		
-		// 文件浏览处理
 		if(pageType=="files"){
 			if(!fsys.isDir(request.path)) {
-				// ★【修复】web 根目录里的 .aardio 文件不再 loadcode 编译执行。
-				// 原因：response.loadcode 会把文件当 aardio 源码现场编译，
-				//      若该文件里含 $"\\include\\xxx" 之类的编译期包含语句，
-				//      编译失败 → 整个页面弹报错（例如 web 根目录里的 main.aardio）。
 				var lpath = string.lower(request.path);
 				var isAardioFile = (#lpath >= 7) and (string.right(lpath, 7) == ".aardio");
 
@@ -699,10 +714,8 @@ srvHttp.run(
 			}
 		}
 		
-		// 输出 HTML 头部
 		response.write(getHtmlHead(pageType));
 		
-		// 上传页面
 		if(pageType=="upload"){
 			response.write(`
 <h3 class="page-title">📤 上传文件</h3>
@@ -714,7 +727,6 @@ srvHttp.run(
 <script>
 if (typeof FilePond !== 'undefined') {
 	FilePond.create(document.querySelector('input[type="file"]'), {
-		//这里不能写 %3Eupload%3E，因为 FilePond 会再次进行 URL 编码
 		server: '/<upload>/?t=`+srvHttp.userToken+`',
 		labelIdle: '点击或拖拽文件到此处上传',
 		labelFileProcessingComplete: '上传成功',
@@ -739,9 +751,17 @@ if (typeof FilePond !== 'undefined') {
 			return;
 		}
 		
+		// ============================================================
 		// 剪贴板页面
+		// ★ 不再限制长度，超长时弹 toast 提醒
+		// ★ 阈值走 config.winform.clipboardMax
+		// ============================================================
 		if(pageType=="clipboard"){
+			var maxLen = config.winform.clipboardMax;
+			if(!maxLen) maxLen = 16384;
+
 			var clipText = win.clip.read() : "";
+
 			response.write(`
 <h3 class="page-title">📋 共享剪贴板</h3>
 
@@ -782,17 +802,34 @@ document.getElementById('pasteTip').textContent = pasteTip;
 
 const clipboardContent = document.getElementById('clipboardContent');
 
-// ★修复 3：输入时记录时间戳，并把值写入"发送历史"，供 onmessage 判断回声
+// ★ 从服务端注入的提醒阈值（不限制长度，仅用于提示）
+const CLIPBOARD_MAX = ` + maxLen + `;
+
+`);
+
+			response.write(`
+
+clipboardContent.addEventListener('paste', function(e) {
+	var pasted = (e.clipboardData || window.clipboardData).getData('text');
+	if (pasted && pasted.length > CLIPBOARD_MAX) {
+		notifyTooLong(pasted.length);
+	}
+});
+
 clipboardContent.addEventListener('input', (e) => {
 	const val = e.target.value;
 	window.clipboardLastEditTime = Date.now();
 	window.clipboardLastSentValue = val;
 	window.clipboardSentHistory.set(val, Date.now());
 
-	// 清理 5 秒之前的发送记录
 	const now = Date.now();
 	for (const [k, t] of window.clipboardSentHistory) {
 		if (now - t > 5000) window.clipboardSentHistory.delete(k);
+	}
+
+	// ★ 超长时提醒（不影响发送）
+	if (val.length > CLIPBOARD_MAX) {
+		notifyTooLong(val.length);
 	}
 
 	if (websocket && websocket.readyState === WebSocket.OPEN) {
@@ -814,14 +851,12 @@ copyBtn.addEventListener('click', async function() {
 	}
 });
 
-// ★修复 4：不要无条件全选，光标落到末尾即可
 clipboardContent.setSelectionRange(clipboardContent.value.length, clipboardContent.value.length);
 </script>
 </body></html>`);
 			return;
 		}
 		
-		// 输入法页面
 		if(pageType=="input"){
 			response.write(`
 <div style="display:flex;align-items:center;justify-content:space-between;
@@ -889,7 +924,6 @@ inputContent.focus();
 			return;
 		}
 		
-		// 文件列表页面
 		var pathDisplay = string.html.escape(inet.url.decode(request.path));
 		var isUploadDir = string.startsWith(request.path,"/upload");
 		
@@ -902,7 +936,6 @@ inputContent.focus();
 		
 		response.write(`<h3 class="page-title">` + pathDisplay + `</h3>`);
 		
-		// 显示返回上级按钮（非根目录时）
 		if(request.path!="/") {
 			var parentPath = fsys.getParentDir(request.path);
 			if(!#parentPath) parentPath = "/";
@@ -914,7 +947,6 @@ inputContent.focus();
 		
 		response.write(`<ul class="file-list">`);
 		
-		// 根目录显示上传目录入口
 		if(request.path=="/" && ..io.exist("/upload/")){
 	        response.write('<li><a href="/upload/?t='+srvHttp.userToken+'"><span class="ficon">📁</span><span class="fname">📤 已上传的文件</span></a></li>\r\n');	
 	    }
@@ -1034,7 +1066,7 @@ var serverInfo = function(){
 
 	var qrBmp = qrencode.bitmap( url );
     winform.qr.setForeground(qrBmp.copyBitmap(winform.qr.width)); 
-	currentQrUrl = url;   // ★【二维码可点】记住当前 URL，点击二维码时用它打开
+	currentQrUrl = url;
 	
 	if(winform.chkPublicAddress.checked){
 		winform.txtMessage.print( 
@@ -1047,12 +1079,12 @@ var serverInfo = function(){
 	else{
 		winform.txtMessage.print( 
 			"
-手机无线连接电脑局域网。
+手机无线连接电脑局域网，只走内网。
 扫码打开网页即可互传文件，共享电脑剪贴板、手机输入法。
 拖动文件或目录到窗口网页自动刷新。
 
-本工具只走内网，不走公网！
 端口与密钥动态改变，双重安全保障。"
+
 		); 		
 	} 
 }
@@ -1072,7 +1104,6 @@ winform.btnStart.oncommand = function(id,event){
 		 	var token = string.right(customUrl,-8); 
 		 	
 		 	import process.natapp;
-		 	//..natapp = process.natapp(token,winform.edi,"INFO")
 		 	..natapp = process.natapp(token, winform.txtMessage, "INFO")
 		 	if(natapp[["tunnelUrl"]]){
 		 		winform.natAppTunnelUrl = natapp.tunnelUrl;
@@ -1092,29 +1123,24 @@ winform.btnStart.oncommand = function(id,event){
 	
 	config.saveAll();
 	
-	// ★【端口自动切换】重启服务时，用输入框当前的端口值，如果被占用则自动切换
+	try{ srvHttp.close(); }catch(e){}
+	
 	var desiredPort = tonumber(winform.editPort.text);
-	var port = findAvailablePort(desiredPort);
+	if(!desiredPort || desiredPort <= 0 || desiredPort >= 32768){
+		desiredPort = 18900;
+	}
 	
-	if(!port){
+	applyServerConfig();
+	
+	var actualPort = startWithFallback(desiredPort);
+	if(!actualPort){
 		winform.btnStart.disabledText = null;
-		return winform.msgboxErr("找不到可用端口，请手动指定一个端口后重试。");
+		return winform.msgboxErr("无法启动服务，请检查端口设置。");
 	}
-	
-	if(port != desiredPort){
-		winform.txtMessage.print( "端口 " + desiredPort + " 已被占用，自动切换到 " + port );
+	if(actualPort != desiredPort){
+		winform.txtMessage.print("端口 " + desiredPort + " 已被占用，自动切换到 " + actualPort);
 	}
-	
-	srvHttp.documentRoot = fsys.isDir(winform.editDocumentRoot.text) ? winform.editDocumentRoot.text : srvHttp.documentRoot;
-	srvHttp.userToken = winform.editPassword.text;
-	try{
-		srvHttp.start("0.0.0.0",port);
-		winform.editPort.text = port;
-	}
-	catch(e){
-		winform.btnStart.disabledText = null;
-		return winform.msgboxErr("启动服务失败：" + e);
-	}
+	winform.editPort.text = actualPort;
 	
 	serverInfo();
 	
@@ -1161,7 +1187,6 @@ winform.btnOpenUpload.oncommand = function(id,event){
 	}
 }
 
-// ★【置顶】状态变量 + 统一设置函数（必须在使用之前定义）
 var isTopmost = false;
 
 var setTopmost = function(v){
@@ -1172,48 +1197,50 @@ var setTopmost = function(v){
 	winform.btnTopmost.redraw();
 }
 
-// ★【置顶按钮】
 winform.btnTopmost.onMouseDown = function(){
 	setTopmost(!isTopmost);
 	return 0;
 }
 
-// ★【配置按钮】点击后直接用记事本打开 config.ini
 winform.btnConfig.oncommand = function(id,event){
 	var cfgPath = io.fullpath("\config.ini");
 	
-	// config.ini 不存在时，先写一份带注释的模板，方便直接编辑
 	if(!io.exist(cfgPath)){
-		// 反引号原始字符串：里面的换行就是源码里的真实换行
 		string.save(cfgPath, `; qrfs - 扫码快传 配置文件
 ; 修改保存后，回到主界面点【重启服务】生效。
-;
-; Port     端口号；不写该行或留空 → 自动选一个空闲端口
-; Password 密码：
-;            不写该行   → 每次启动自动生成随机密码
-;            Password=  → 空密码（任何人都能连）
-;            Password=abc → 使用密码 abc
-; WWWRoot  网站根目录：不写该行、留空或目录不存在 → 使用上次保存的目录（默认桌面）
-;            例如：WWWRoot=D:\SharedFiles
 
 [Server]
-Port=18900
-Password=
+
+; 网站根目录
+;   不写该行、留空或目录不存在 → 使用上次保存的目录（默认桌面）
+;   如：WWWRoot=D:\SharedFiles
 WWWRoot=
+
+; 端口号不写行或留空 → 使用默认端口 18900（被占用时自动切换随机端口）
+Port=
+
+; 密码[重要]：
+;   不写该行      → 每次启动自动生成随机密码
+;   Password=     → 空密码（任何人都能连）
+;   Password=abc  → 使用密码 abc
+Password=
+
+; 剪贴板提醒阈值（字节数，也等于字符数）：
+;   不写该行或留空 → 使用默认 16384（约 16 KB）
+;    此值不限制传输长度，只用于"超过此值时手机端弹 toast 提醒"
+;   16384 / 32768 / 49152 / 65536 / 131072
+ClipboardMax=
 `);
 	}
 	
-	// 用记事本打开 config.ini
 	try{
 		process.execute("notepad.exe", cfgPath);
 	}
 	catch(e){
-		// 万一记事本没找到，退回系统默认关联程序
 		process.openUrl(cfgPath);
 	}
 }
 
-// 鼠标移到二维码上变手型
 winform.qr.cursor = 0x7F89/*_IDC_HAND*/;
 
 winform.qr.onMouseClick = function(){
@@ -1222,33 +1249,32 @@ winform.qr.onMouseClick = function(){
     m.add("复制链接", function(){ if(#currentQrUrl) win.clip.write(currentQrUrl); });
     m.add();
 
-m.add("保存二维码为图片", function(){
-    if(!#currentQrUrl) return;
-    var path = fsys.dlg.save("PNG图片(*.png)|*.png", "png", "qrfs二维码.png", winform);
-    if(!#path) return;
-    // 关键：copyBitmap(500) 缩放到 500px 宽
-    var bmp = qrencode.bitmap(currentQrUrl).copyBitmap(300);
-    bmp.save(path);
-});
+    m.add("保存二维码为图片", function(){
+        if(!#currentQrUrl) return;
+        var path = fsys.dlg.save("PNG图片(*.png)|*.png", "png", "qrfs二维码.png", winform);
+        if(!#path) return;
+        var bmp = qrencode.bitmap(currentQrUrl).copyBitmap(300);
+        bmp.save(path);
+    });
 
-m.add("复制二维码图片", function(){
-    if(!#currentQrUrl) return;
-    import win.clip.bitmap;
-    // 同样缩放到 500px 宽
-    var bmp = qrencode.bitmap(currentQrUrl).copyBitmap(300);
-    win.clip.bitmap.write(bmp);
-});
+    m.add("复制二维码图片", function(){
+        if(!#currentQrUrl) return;
+        import win.clip.bitmap;
+        var bmp = qrencode.bitmap(currentQrUrl).copyBitmap(300);
+        win.clip.bitmap.write(bmp);
+    });
 
     m.popup();
 }
 
 
-// ★修复 5：恢复原样——剪贴板一变就广播，让所有客户端都能收到。
-//（客户端自己判断是否为自己的回声，来决定要不要覆盖 textarea）
+// ★剪贴板一变就广播，不限制长度
 var clipViewer = win.clip.viewer(winform);
 clipViewer.onDrawClipboard=function(){
 	var str = win.clip.read();	
-	if(#str) wsrv.publish(str) 
+	if(!#str) return;
+	// ★ 不再因长度而拒绝广播，双向都放行
+	wsrv.publish(str);
 }
 
 import key;
@@ -1257,9 +1283,15 @@ wsrv.onMessage = function(hSocket,msg){
 	if(!data) return;
 	
 	if(data.event=="clipboard"){
-		wsrv.lastReceivedClipboardData = data.content; 
-		win.clip.write(data.content);	
+		wsrv.lastReceivedClipboardData = data.content;
+		try {
+			win.clip.write(data.content);
+		}
+		catch(e) {
+			winform.txtMessage.print("写入剪贴板失败（可能被其它程序占用）：" + e);
+		}
 	}
+	
 	elseif(data.event=="input"){
 		if(!winform.chkAiOpt.checked){
 			key.sendString(data.content)
@@ -1276,7 +1308,6 @@ wsrv.onMessage = function(hSocket,msg){
 					msg.prompt( "请修复语音识别结果: " + text );
 			 		 
 			 		import winex.loading;
-					//var loading = winex.loading("正在优化",hFocus)
 					var loading = winex.loading("正在优化", winform.hwnd)
 				
 					var resp,err = aiClient.messages(msg,
@@ -1316,19 +1347,18 @@ var updateHomeDir = function(){
 	if(#srvHttp.userToken){
 		url = url ++ "?t=" + srvHttp.userToken;
 	}  
-	// 【新增】同步更新左侧文本框中的 URL
 	winform.txtMessage.text = 'HTTP 服务端已启动: \n'; 
 	winform.txtMessage.print( url ); 
 	winform.txtMessage.print( 
 		"
 手机无线连接电脑局域网。
 扫码打开网页即可互传文件，共享电脑剪贴板、手机输入法。
-拖动文件或目录到窗口网页自动刷新。"
+拖动文件或目录到窗口网页自动刷新。" 
 	); 
 		
 	var qrBmp = qrencode.bitmap( url );
     winform.qr.setForeground(qrBmp.copyBitmap(winform.qr.width)); 	
-	currentQrUrl = url;   // ★【二维码可点】切换页面时同步更新点击 URL
+	currentQrUrl = url;
 }
 
 winform.radioQrRootDir.oncommand = function(id,event){
@@ -1350,11 +1380,6 @@ winform.radioQrInputMethod.oncommand = function(id,event){
 	config.winform.qrDir = "input";
 	updateHomeDir();
 }
-
-/*
-//左侧文本框不进入输入模式
-winform.txtMessage.readonly = true;
-*/
 
 /*托盘图标开始*/
 import win.util.tray;
@@ -1434,7 +1459,6 @@ winform.btnSetting.oncommand = function(id,event){
 	var frmSetting = web.rest.aiChat.settingForm(this,config.aiOpt);
 	
 	if( frmSetting.doModal(this) ){
-		//..table.assign(config.aiOpt,config.itemData[config.selItem] );
 		..table.assign(config.aiOpt, frmSetting.itemData[frmSetting.selItem]);
 	}
 }
@@ -1467,9 +1491,8 @@ winform.chkPublicAddress.oncommand = function(id,event){
 import gdip.imageAttributes;
 var imgAttr = gdip.imageAttributes()
 
-//替换前景图像（二维码）颜色
 imgAttr.setRemapTable({ 
-	0xFF000000; 0xFF00A1D9; // 仅将二维码中的黑色（0xFF000000）替换为绿色（0xFF008000），不替换白色
+	0xFF000000; 0xFF00A1D9;
 	0xFFFFFFFF; 0xFFFAFAFA;
 }); 
 winform.qr.imageAttributes = imgAttr
@@ -1508,7 +1531,6 @@ winform.btnSetting.skin({
 	}
 })
 
-// ★【配置按钮】低调整体风格：默认浅灰，hover 变深，active 变蓝
 winform.btnConfig.skin({
 	color={
 		default = 0xFF9A9A9A;
@@ -1527,36 +1549,33 @@ winform.syslink.oncommand = function(id,event){
 	
 }
 
-// ★【端口自动切换】程序启动时，如果配置文件指定了端口，优先使用该端口，
-// 若端口被占用则自动切换到一个随机可用端口。
-if(cfgPort){
-    // 先关闭之前默认启动的随机端口服务
-    try{ srvHttp.close(); }
-    catch(e){}
-    
-    srvHttp.documentRoot = fsys.isDir(winform.editDocumentRoot.text) ? winform.editDocumentRoot.text : srvHttp.documentRoot;
-    srvHttp.userToken = winform.editPassword.text;
-    
-    var desiredPort = tonumber(cfgPort);
-    var actualPort  = findAvailablePort(desiredPort);
-    
-    if(actualPort){
-        if(actualPort != desiredPort){
-            winform.txtMessage.print( "端口 " + desiredPort + " 已被占用，自动切换到 " + actualPort );
-        }
-        try{
-            srvHttp.start("0.0.0.0", actualPort);
-            winform.editPort.text = actualPort;
-        }
-        catch(e){
-            winform.txtMessage.print( "启动服务失败：" + e );
-        }
-    }
-    else{
-        winform.txtMessage.print( "无法找到可用端口，请手动指定端口后点击【重启服务】。" );
-    }
+// ============================================================
+// 【启动】
+// ============================================================
+var desiredPort = 18900;
+if(cfgPort && #string.trim(cfgPort)){
+    var p = tonumber(string.trim(cfgPort));
+    if(p && p > 0 && p < 32768) desiredPort = p;
+}
+winform.editPort.text = desiredPort;
+
+try{ srvHttp.close(); }catch(e){}
+
+applyServerConfig();
+
+var actualPort = startWithFallback(desiredPort);
+if(actualPort){
+    winform.editPort.text = actualPort;
+}
+else{
+    winform.txtMessage.print("无法启动服务，请手动指定端口后点击【重启服务】。");
 }
 
 serverInfo();
 
+winform.txtMessage.print("");
+if(actualPort && actualPort != desiredPort){
+    winform.txtMessage.print("端口 " + desiredPort + " 已被占用，自动切换到 " + actualPort);
+}
+//winform.txtMessage.print("剪贴板超长提醒：" + config.winform.clipboardMax + " 字节（约 " + math.round(config.winform.clipboardMax/1024) + " KB）");
 win.loopMessage();
