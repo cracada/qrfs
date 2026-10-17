@@ -1241,6 +1241,26 @@ ClipboardMax=
 	}
 }
 
+// ★ Esc = 隐藏到托盘（用 onCancel 接收，而不是 oncommand 的 IDCANCEL）
+winform.onCancel = function(){
+    winform.show(false);   // 隐藏，程序还在托盘
+    return true;           // 告诉系统：我已处理，不要再走默认关闭
+}
+
+// Ctrl+W 退出（原样保留，不动）
+var ctrlWQuit = function(wParam, lParam, flags, x, y){
+    if(wParam == 0x57/*_VK_W*/ && (::GetKeyState(0x11/*_VK_CONTROL*/) & 0x8000)){
+        winform.close();
+        return true;
+    }
+}
+
+winform.onKeyDown                          = ctrlWQuit;
+winform.editDocumentRoot.editBox.onKeyDown = ctrlWQuit;
+winform.editHost.editBox.onKeyDown         = ctrlWQuit;
+winform.editPassword.editBox.onKeyDown     = ctrlWQuit;
+winform.editPort.editBox.onKeyDown         = ctrlWQuit;
+
 winform.qr.cursor = 0x7F89/*_IDC_HAND*/;
 
 winform.qr.onMouseClick = function(){
