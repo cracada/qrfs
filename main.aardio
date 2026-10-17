@@ -67,15 +67,6 @@ txtMessage={cls="richedit";left=43;top=151;right=451;bottom=436;anchors={left=1;
 )
 /*}}*/
 
-// 【启动加速】不再联网检查更新
-// if( fsys.update.simpleMain(
-// 	"qrfs - 扫码快传",
-// 	"http://d.aardio.com/qrfs/update/",
-// 	io.appData("/aardio/std/qrfs/app/update"),
-// 	function(version,description,status){})){
-// 	return 0;	
-// }
-
 config = fsys.config(io.appData("aardio/std/qrfs")); 
 
 table.mix(config.aiOpt,{
@@ -524,43 +515,44 @@ ul.file-list li span.fsize { font-size: 0.8rem; color: var(--text-secondary); wh
 </nav>
 
 <script>
-let websocket;
-let wsReconnectAttempts = 0;
-window.clipboardLastEditTime = 0;
-window.clipboardLastSentValue = null;
-window.clipboardSentHistory = new Map();
-const wsUrl = "`+wsrv.getUrl("ws",true)+`";
+var websocket;
+var wsReconnectAttempts = 0;
+var mySentMsgIds = {};   // ★ 普通对象，msgId -> 时间戳，兼容性优于 Map
+var clipboardSendTimer = null;
+var clipboardPendingValue = null;
+var wsUrl = "`+wsrv.getUrl("ws",true)+`";
 
 function connectWebSocket() {
 	websocket = new WebSocket(wsUrl);
 	websocket.onopen = function() { wsReconnectAttempts = 0; };
 	websocket.onmessage = function(evt) {
-		if (evt.data === "reload") {
-			`+(activeTab=="files"?"window.location.reload();":"")+`
-			return;
-		}
-		const el = document.getElementById('clipboardContent');
-		if (!el) return;
+		try {
+			if (evt.data === "reload") {
+				`+(activeTab=="files"?"window.location.reload();":"")+`
+				return;
+			}
+			var el = document.getElementById('clipboardContent');
+			if (!el) return;
 
-		if (evt.data === el.value) return;
+			var data;
+			try { data = JSON.parse(evt.data); } catch(e) { return; }
+			if (data.event !== "clipboard") return;
 
-		if (window.clipboardSentHistory.has(evt.data)) {
-			return;
-		}
+			// ★ 自己的回显：msgId 在已发送集合里，一律忽略
+			if (data.msgId && mySentMsgIds[data.msgId]) return;
+			if (data.content === el.value) return;
 
-		if (document.activeElement === el
-			&& Date.now() - window.clipboardLastEditTime < 1000) {
-			return;
-		}
-
-		el.value = evt.data;
-		if (document.activeElement === el) {
-			el.selectionStart = el.selectionEnd = el.value.length;
+			el.value = data.content;
+			if (document.activeElement === el) {
+				el.selectionStart = el.selectionEnd = el.value.length;
+			}
+		} catch(e) {
+			if (window.console && console.error) console.error('onmessage error', e);
 		}
 	};
 	websocket.onclose = function() {
 		if (wsReconnectAttempts < 5) {
-			const delay = Math.min(1000 * Math.pow(1.5, wsReconnectAttempts), 10000);
+			var delay = Math.min(1000 * Math.pow(1.5, wsReconnectAttempts), 10000);
 			setTimeout(connectWebSocket, delay);
 			wsReconnectAttempts++;
 		}
@@ -570,9 +562,9 @@ connectWebSocket();
 
 // ★ 超长提醒：
 //   电脑端：整个会话只弹一次
-//   手机端：首次弹一次，之后距上次提示满 10 秒才再弹（节流）
-let tooLongNotifiedPC = false;
-let lastTooLongTipTime = 0;
+//   手机端：首次弹一次，之后距上次提示满 7.5 秒才再弹（节流）
+var tooLongNotifiedPC = false;
+var lastTooLongTipTime = 0;
 
 function notifyTooLong(len) {
 	if (typeof CLIPBOARD_MAX === 'undefined') return;
@@ -582,13 +574,11 @@ function notifyTooLong(len) {
 	var msg = '内容较长（' + Math.round(len/1024) + 'K），同步可能较慢';
 
 	if (isMobile) {
-		// 手机端：节流 7.5=2.5*3 秒
 		var now = Date.now();
 		if (now - lastTooLongTipTime < 7500) return;
 		lastTooLongTipTime = now;
 		showToast(msg, 2500);
 	} else {
-		// 电脑端：整个会话只弹一次
 		if (tooLongNotifiedPC) return;
 		tooLongNotifiedPC = true;
 		showToast(msg, 3000);
@@ -596,11 +586,11 @@ function notifyTooLong(len) {
 }
 
 function showToast(msg, duration) {
-	const toast = document.getElementById('toast');
+	var toast = document.getElementById('toast');
 	toast.textContent = msg;
 	toast.classList.add('show');
 	clearTimeout(toast._timer);
-	toast._timer = setTimeout(() => toast.classList.remove('show'), duration || 2000);
+	toast._timer = setTimeout(function(){ toast.classList.remove('show'); }, duration || 2000);
 }
 
 function deleteFile(path, btn) {
@@ -608,11 +598,11 @@ function deleteFile(path, btn) {
 	if (!confirm('确定要删除此文件吗？')) return;
 	
 	fetch('/%3Cupload%3E/?t=`+srvHttp.userToken+`', { method: 'DELETE', body: path })
-	.then(res => {
+	.then(function(res) {
 		if (res.ok) {
-			const li = btn.closest('li');
+			var li = btn.closest('li');
 			li.style.opacity = '0';
-			setTimeout(() => {
+			setTimeout(function() {
 				li.remove();
 				if(document.querySelectorAll('ul.file-list li').length === 0) {
 					document.querySelector('ul.file-list').innerHTML = '<li class="empty-tip">📭 目录为空</li>';
@@ -620,7 +610,7 @@ function deleteFile(path, btn) {
 			}, 300);
 			showToast('已删除');
 		} else { showToast('删除失败'); }
-	}).catch(() => showToast('请求失败'));
+	}).catch(function(){ showToast('请求失败'); });
 }
 </script>
 `;
@@ -736,7 +726,7 @@ if (typeof FilePond !== 'undefined') {
 		}
 	});
 } else {
-	const input = document.querySelector('input[type="file"]');
+	var input = document.querySelector('input[type="file"]');
 	input.className = 'native-upload';
 	input.insertAdjacentHTML('afterend', '<p style="text-align:center;color:var(--text-secondary)">选择文件后自动上传</p>');
 }
@@ -753,8 +743,6 @@ if (typeof FilePond !== 'undefined') {
 		
 		// ============================================================
 		// 剪贴板页面
-		// ★ 不再限制长度，超长时弹 toast 提醒
-		// ★ 阈值走 config.winform.clipboardMax
 		// ============================================================
 		if(pageType=="clipboard"){
 			var maxLen = config.winform.clipboardMax;
@@ -780,13 +768,13 @@ if (typeof FilePond !== 'undefined') {
 </div>
 
 <script>
-const isMobile = /Android|iPhone|iPad|iPod/i.test(navigator.userAgent);
-const isIOS = /iPhone|iPad|iPod/i.test(navigator.userAgent);
-const isAndroid = /Android/i.test(navigator.userAgent);
+var isMobile = /Android|iPhone|iPad|iPod/i.test(navigator.userAgent);
+var isIOS = /iPhone|iPad|iPod/i.test(navigator.userAgent);
+var isAndroid = /Android/i.test(navigator.userAgent);
 
-const copyBtn = document.getElementById('copyBtn');
+var copyBtn = document.getElementById('copyBtn');
 
-let pasteTip = '使用 Ctrl+V 粘贴内容到输入框';
+var pasteTip = '使用 Ctrl+V 粘贴内容到输入框';
 if (isIOS) {
 	pasteTip = '长按输入框 → 选择"粘贴"';
 } else if (isAndroid) {
@@ -800,14 +788,10 @@ else{
 
 document.getElementById('pasteTip').textContent = pasteTip;
 
-const clipboardContent = document.getElementById('clipboardContent');
+var clipboardContent = document.getElementById('clipboardContent');
 
 // ★ 从服务端注入的提醒阈值（不限制长度，仅用于提示）
-const CLIPBOARD_MAX = ` + maxLen + `;
-
-`);
-
-			response.write(`
+var CLIPBOARD_MAX = ` + maxLen + `;
 
 clipboardContent.addEventListener('paste', function(e) {
 	var pasted = (e.clipboardData || window.clipboardData).getData('text');
@@ -816,27 +800,49 @@ clipboardContent.addEventListener('paste', function(e) {
 	}
 });
 
-clipboardContent.addEventListener('input', (e) => {
-	const val = e.target.value;
-	window.clipboardLastEditTime = Date.now();
-	window.clipboardLastSentValue = val;
-	window.clipboardSentHistory.set(val, Date.now());
+// ★ 输入防抖：80ms 后发送最后一次内容
+clipboardContent.addEventListener('input', function(e) {
+	var val = e.target.value;
 
-	const now = Date.now();
-	for (const [k, t] of window.clipboardSentHistory) {
-		if (now - t > 5000) window.clipboardSentHistory.delete(k);
-	}
-
-	// ★ 超长时提醒（不影响发送）
 	if (val.length > CLIPBOARD_MAX) {
 		notifyTooLong(val.length);
 	}
 
-	if (websocket && websocket.readyState === WebSocket.OPEN) {
-		websocket.send(JSON.stringify({
-			event:"clipboard",
-			content:val
-		}));
+	clipboardPendingValue = val;
+
+	if (clipboardSendTimer) clearTimeout(clipboardSendTimer);
+	clipboardSendTimer = setTimeout(flushClipboardSend, 80);
+});
+
+function flushClipboardSend() {
+	clipboardSendTimer = null;
+	var val = clipboardPendingValue;
+	if (val === null || val === undefined) return;
+
+	if (!websocket || websocket.readyState !== WebSocket.OPEN) return;
+
+	var msgId = Math.random().toString(36).slice(2) + Date.now();
+	mySentMsgIds[msgId] = Date.now();
+
+	// 清理 10 秒前的 msgId，防止无限增长
+	var now = Date.now();
+	for (var id in mySentMsgIds) {
+		if (now - mySentMsgIds[id] > 10000) delete mySentMsgIds[id];
+	}
+
+	websocket.send(JSON.stringify({
+		event: "clipboard",
+		content: val,
+		msgId: msgId
+	}));
+}
+
+// 页面关闭前强制 flush，避免最后一段输入没发出去
+window.addEventListener('beforeunload', function() {
+	if (clipboardSendTimer) {
+		clearTimeout(clipboardSendTimer);
+		clipboardSendTimer = null;
+		flushClipboardSend();
 	}
 });
 
@@ -879,15 +885,15 @@ clipboardContent.setSelectionRange(clipboardContent.value.length, clipboardConte
 </div>
 
 <script>
-const isMobile = /Android|iPhone|iPad|iPod/i.test(navigator.userAgent);
+var isMobile = /Android|iPhone|iPad|iPod/i.test(navigator.userAgent);
 if (!isMobile) {
 	document.getElementById('sendBtn').textContent = '📨 发送到服务端';
 	document.getElementById('sendBtnTop').textContent = '📨 发送';
 }
 
-const inputContent = document.getElementById('inputContent');
-const sendBtn = document.getElementById('sendBtn');
-const sendBtnTop = document.getElementById('sendBtnTop');
+var inputContent = document.getElementById('inputContent');
+var sendBtn = document.getElementById('sendBtn');
+var sendBtnTop = document.getElementById('sendBtnTop');
 
 async function doSendInput() {
 	if(!inputContent.value.trim()) {
@@ -1241,13 +1247,13 @@ ClipboardMax=
 	}
 }
 
-// ★ Esc = 隐藏到托盘（用 onCancel 接收，而不是 oncommand 的 IDCANCEL）
+// ★ Esc = 隐藏到托盘
 winform.onCancel = function(){
-    winform.show(false);   // 隐藏，程序还在托盘
-    return true;           // 告诉系统：我已处理，不要再走默认关闭
+    winform.show(false);
+    return true;
 }
 
-// Ctrl+W 退出（原样保留，不动）
+// Ctrl+W 退出
 var ctrlWQuit = function(wParam, lParam, flags, x, y){
     if(wParam == 0x57/*_VK_W*/ && (::GetKeyState(0x11/*_VK_CONTROL*/) & 0x8000)){
         winform.close();
@@ -1288,28 +1294,51 @@ winform.qr.onMouseClick = function(){
 }
 
 
-// ★剪贴板一变就广播，不限制长度
+// ★ 剪贴板监听：WS 触发的变化跳过，本地复制正常广播
 var clipViewer = win.clip.viewer(winform);
-clipViewer.onDrawClipboard=function(){
-	var str = win.clip.read();	
-	if(!#str) return;
-	// ★ 不再因长度而拒绝广播，双向都放行
-	wsrv.publish(str);
+clipViewer.onDrawClipboard = function(){
+    var str = win.clip.read();
+    if(!#str) return;
+
+    // WS 触发的剪贴板变化，onMessage 里已经广播过了，跳过
+    if(wsrv.suppressClipboardUntil && time.tick() < wsrv.suppressClipboardUntil){
+        wsrv.suppressClipboardUntil = 0;
+        return;
+    }
+
+    // 电脑端本地复制，广播给所有人（无 msgId）
+    wsrv.publish(JSON.stringify({
+        event: "clipboard",
+        content: str
+    }));
 }
 
 import key;
 wsrv.onMessage = function(hSocket,msg){
-	var data = JSON.tryParse(msg.data)
+	var data = JSON.tryParse(msg.data);
 	if(!data) return;
 	
 	if(data.event=="clipboard"){
 		wsrv.lastReceivedClipboardData = data.content;
+
+		// 设 500ms 抑制窗口：onDrawClipboard 在窗口内跳过广播，避免重复
+		wsrv.suppressClipboardUntil = time.tick() + 500;
+
 		try {
 			win.clip.write(data.content);
 		}
 		catch(e) {
+			wsrv.suppressClipboardUntil = 0;
 			winform.txtMessage.print("写入剪贴板失败（可能被其它程序占用）：" + e);
+			return;
 		}
+
+		// 立即广播，带上客户端传来的 msgId
+		wsrv.publish(JSON.stringify({
+			event: "clipboard",
+			content: data.content,
+			msgId: data.msgId
+		}));
 	}
 	
 	elseif(data.event=="input"){
@@ -1597,5 +1626,4 @@ winform.txtMessage.print("");
 if(actualPort && actualPort != desiredPort){
     winform.txtMessage.print("端口 " + desiredPort + " 已被占用，自动切换到 " + actualPort);
 }
-//winform.txtMessage.print("剪贴板超长提醒：" + config.winform.clipboardMax + " 字节（约 " + math.round(config.winform.clipboardMax/1024) + " KB）");
 win.loopMessage();
