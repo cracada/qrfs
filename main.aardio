@@ -1,3 +1,19 @@
+/*
+ * SPDX-FileCopyrightText: https://github.com/cracada/qrfs/
+ * SPDX-License-Identifier: GPL-3.0-or-later
+ *
+ * This file is part of [crqrfs].
+ * It contains modifications and additions to code originally
+ * licensed under the MIT License. The original MIT license text
+ * is retained in the LICENSE file at the project root.
+ *
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
+ * ...
+ */
+ 
 //扫码传文件 - v3.0 (文本页纯协同 + 双开关 + 导航优化版 + 配置文件支持 + 剪贴板多端同步修复 + 允许空密码 + 输入法顶部发送按钮 + 端口自动切换 + 配置文件按钮 + 二维码可点 + WWWRoot 配置)
 import fsys;
 import fsys.info;
